@@ -1,7 +1,7 @@
 # Operating Systems — T2 Complete Exam-Ready Notes
 
 > **Level:** Intermediate | **Coverage:** Threads and Concurrency + Multilevel Feedback Queue, Multiprocessor and Thread Scheduling, Algorithm Evaluation + Process Synchronization + Deadlocks
-> **Built from:** `ch4.ppt` (Threads and Concurrency), `DOC-20260825-WA0000.pdf` (Threads lecture), `ch6.pdf` (Process Synchronization), `Week 6_1 / 6_2 / 6_3.pptx` (Critical section, Semaphores, Monitors), `ch7.ppt` (Synchronization Examples), `ch8.ppt` (Deadlocks), `Week7_Deadlock.pptx` (Deadlock lecture with solved problems).
+> **Built from:** `ch4.ppt` (Threads and Concurrency), `DOC-20260825-WA0000.pdf` (Threads lecture), `Week 4.pptx` (CPU Scheduling: multilevel queues, multiple-processor and real-time scheduling, algorithm evaluation), `ch6.pdf` (Process Synchronization), `Week 6_1 / 6_2 / 6_3.pptx` (Critical section, Semaphores, Monitors), `ch7.ppt` (Synchronization Examples), `ch8.ppt` (Deadlocks), `Week7_Deadlock.pptx` (Deadlock lecture with solved problems), `ch3.ppt` (Processes: background chapter, in Appendix A).
 > **Exam use:** Definitions, diagrams, comparisons, algorithms, code interpretation, Banker's and detection numericals, viva points, and practice questions.
 
 **Syllabus covered**
@@ -36,7 +36,7 @@
    - 9.1 fork and exec semantics · 9.2 Signal handling · 9.3 Thread cancellation · 9.4 Thread-local storage and thread-specific data · 9.5 Thread safety · 9.6 Scheduler activations and LWP · 9.7 Pros and cons of multithreading
 10. [Operating-system examples: Windows and Linux threads](#10-operating-system-examples-windows-and-linux-threads)
 11. [Scheduling: multilevel feedback queue, multiple processors, threads, and algorithm evaluation](#11-scheduling-multilevel-feedback-queue-multiple-processors-threads-and-algorithm-evaluation)
-    - 11.1 Multilevel queue (recap) · 11.2 Multilevel feedback queue (MLFQ) · 11.3 Multiple-processor scheduling · 11.4 Thread scheduling · 11.5 Algorithm evaluation
+    - 11.1 Multilevel queue · 11.2 Multilevel feedback queue (MLFQ) · 11.3 Multiple-processor scheduling · 11.4 Real-time scheduling · 11.5 Thread scheduling · 11.6 Algorithm evaluation · 11.7 Practice problem from the slides
 
 ### Part 2 — Process Synchronization: Critical Section, Synchronization Hardware, Semaphores, Monitors
 
@@ -72,6 +72,11 @@
 31. [Recovery from deadlock](#31-recovery-from-deadlock)
 32. [Prevention vs avoidance vs detection](#32-prevention-vs-avoidance-vs-detection)
 
+### Background — Processes and Interprocess Communication (Chapter 3)
+
+- [Appendix A. Processes and interprocess communication (Chapter 3)](#appendix-a-processes-and-interprocess-communication-chapter-3)
+  - A.1 Process concept · A.2 Process states · A.3 Process Control Block · A.4 Process scheduling · A.5 Operations on processes · A.6 Interprocess communication · A.7 Shared-memory systems · A.8 Message-passing systems · A.9 Examples of IPC systems · A.10 Pipes · A.11 Client-server communication · A.12 Key terms and likely questions
+
 ### Reference
 
 33. [Rapid revision tables](#33-rapid-revision-tables)
@@ -92,10 +97,13 @@ After studying these notes, you should be able to:
 - use the Pthreads API (`pthread_create`, `pthread_join`, `pthread_exit`, `pthread_cancel`) and describe Windows and Java threading;
 - describe implicit threading: thread pools, fork-join, OpenMP, Grand Central Dispatch, and TBB;
 - explain threading issues: `fork()`/`exec()` semantics, signal handling, cancellation, thread-local storage, thread safety, and scheduler activations;
+- explain multilevel queue scheduling: separate queues, fixed-priority and time-slice scheduling between queues, starvation;
 - explain multilevel feedback queue scheduling with its five parameters and the three-queue example;
-- explain multiple-processor scheduling: AMP vs SMP, processor affinity, load balancing, multicore processors;
+- explain multiple-processor scheduling: AMP vs SMP, global and local ready queues, processor affinity, load balancing, multicore processors;
+- distinguish hard and soft real-time systems and explain dispatch latency;
 - distinguish process-contention scope and system-contention scope in thread scheduling;
-- compare the four algorithm-evaluation methods and apply Little's formula;
+- compare the algorithm-evaluation methods and apply Little's formula;
+- trace preemptive priority scheduling for processes with CPU and I/O bursts;
 - define a race condition and the critical-section problem with its three requirements;
 - trace Peterson's solution and the hardware solutions (TestAndSet, Swap, compare_and_swap);
 - define semaphores, implement them with and without busy waiting, and use them for the classical problems;
@@ -1096,16 +1104,38 @@ flowchart LR
 
 ## 11. Scheduling: multilevel feedback queue, multiple processors, threads, and algorithm evaluation
 
-> **Source note:** these four topics are in the syllabus, but none of the supplied decks has slides on them (they belong to the CPU-scheduling chapter). This section is the standard textbook treatment, in the same form as your earlier notes. Check your CPU-scheduling slides for the instructor's exact wording and examples.
+> **Source note:** sections 11.1 to 11.4, 11.6, and 11.7 follow `Week 4.pptx` (CPU Scheduling), with the textbook detail filled in around the slides. **Thread scheduling (11.5)** is in the syllabus but has no slides in that deck, so it is the standard textbook treatment.
 
-### 11.1 Multilevel queue (recap)
+### 11.1 Multilevel queue
 
-In a **multilevel queue (MLQ)**, the ready queue is split into several separate queues, for example **foreground (interactive)** and **background (batch)**.
+**Why.** All types of jobs (user programs, applications, registry cleaning, system-health monitoring) compete for a place in a **single ready queue**, although they have very different response-time needs.
 
-- A process is **permanently assigned** to one queue (by type, priority, or memory size).
-- Each queue has its **own scheduling algorithm** (for example foreground: RR, background: FCFS).
-- Scheduling **between** the queues is either **fixed-priority preemptive** (serve the lower queue only when all higher queues are empty) or **time-sliced** (for example 80% of CPU time to foreground, 20% to background).
-- **Weakness:** it is inflexible, and lower queues can **starve**.
+> **Multilevel queue (MLQ):** the ready queue is **partitioned into separate queues**, for example **foreground (interactive)** and **background (batch)**.
+
+- A process is **permanently assigned** to one queue (by type, priority, or memory size). **A process cannot move between the queues.**
+- Each queue has its **own scheduling algorithm**, for example **foreground: RR**, **background: FCFS**.
+- **Scheduling must also be done between the queues.** There are two ways:
+
+| Between-queue scheduling | How it works | Problem |
+|---|---|---|
+| **Fixed-priority scheduling** | Serve **all** of the foreground queue, then the background queue. A lower queue runs only when every higher queue is empty | **Possibility of starvation** of the lower queues |
+| **Time slice** | Each queue gets a certain share of CPU time, which it schedules among its own processes, for example **80% to foreground (RR)** and **20% to background (FCFS)** | No starvation, but the split must be chosen well |
+
+![Slide: multilevel queue scheduling](assets/w4-p07-multilevel-queue.png)
+
+**The five-queue example** (highest to lowest priority): system processes → interactive processes → interactive editing processes → batch processes → student processes.
+
+- There is a **separate queue for each priority**.
+- The scheduler first assigns jobs from the **queue of highest priority**.
+- Only when there are **no jobs in the higher-level queues** does the scheduler take jobs from a lower-priority queue.
+- If an interactive editing process enters its ready queue while a batch process is running, the batch process is **preempted**.
+
+**Advantages and disadvantages**
+
+| Advantages | Disadvantages |
+|---|---|
+| Different classes of process get an algorithm that suits them | **Inflexible**: a process can never change queue |
+| Low scheduling overhead, because queue assignment is fixed | Lower queues can **starve** under fixed priority |
 
 ### 11.2 Multilevel feedback queue (MLFQ)
 
@@ -1134,6 +1164,8 @@ In a **multilevel queue (MLQ)**, the ready queue is split into several separate 
 | **Q1** | Round Robin | 16 ms | Middle |
 | **Q2** | FCFS | — | Lowest |
 
+![Slide: multilevel feedback queue with three queues](assets/w4-p14-mlfq-three-queues.png)
+
 **Rules**
 
 1. A new process enters **Q0**. When it gets the CPU it receives **8 ms**.
@@ -1141,6 +1173,8 @@ In a **multilevel queue (MLQ)**, the ready queue is split into several separate 
 3. In Q1 it receives **16 more ms**. If it still does not finish, it is **preempted and moved to Q2**.
 4. Q2 is served **FCFS**, and only when Q0 and Q1 are empty.
 5. A process arriving in a higher queue **preempts** a process running from a lower queue.
+
+Within Q0 and within Q1 the processes are taken in **FCFS order**; the quantum only limits how long each one runs before it is demoted. That is why the slides say "Q0 serves the processes as FCFS".
 
 ```mermaid
 flowchart TB
@@ -1189,16 +1223,32 @@ A process with a burst of **5 ms** finishes entirely in Q0. A process with a bur
 
 ### 11.3 Multiple-processor scheduling
 
-When more than one CPU is available, **load sharing** becomes possible and scheduling becomes more complex. The usual assumption is that the processors are **homogeneous** (identical in function).
+CPU scheduling is **more complex when multiple CPUs are available**. **Load sharing** becomes possible. The usual assumption is **homogeneous processors** within the multiprocessor (identical in function), so a process taken from the queue can be given to **any processor that is available**.
 
 **Approaches**
 
 | Approach | Description | Advantage | Disadvantage |
 |---|---|---|---|
-| **Asymmetric multiprocessing (AMP)** | One **master** processor makes all scheduling decisions and handles I/O and system activities. The other processors execute only user code. | Simple: only one processor touches the system data structures, so less data sharing is needed | The master can become a bottleneck |
+| **Asymmetric multiprocessing (AMP, master-slave)** | One **master** processor acts as the scheduler: it makes all scheduling decisions and handles I/O and system activities. The other (slave) processors execute only user code. | Simple: only one processor touches the system data structures, so less data sharing is needed | The master can become a bottleneck |
 | **Symmetric multiprocessing (SMP)** | Each processor is **self-scheduling**. Ready processes are in one **common ready queue**, or each processor has its own **private queue**. | No single bottleneck; better load distribution | Access to shared data structures must be synchronized carefully |
 
 Most modern operating systems (Windows, Linux, macOS) use **SMP**.
+
+**SMP in the slides**
+
+- The processors are **identical in functionality**, with **uniform memory access (UMA)**, and they **share the I/O bus and memory**.
+- Scheduling criterion: **self-scheduling**. Each processor selects a process for itself from the ready queue.
+
+| Ready-queue organisation | Meaning |
+|---|---|
+| **Global ready queue** | One queue shared by all processors; a processor selects a process from the global queue |
+| **Local ready queue** | Each processor maintains its own queue |
+| **Hybrid** | A process may be either in the global ready queue or in a local ready queue |
+
+| Scheme | Scheduling criterion |
+|---|---|
+| **Asymmetric (master-slave)** | **One processor acts as the scheduler**; only it accesses the system data structures, which alleviates the need for data sharing |
+| **Symmetric** | **Self-scheduling**: each processor selects one process from the ready queue |
 
 ```mermaid
 flowchart LR
@@ -1248,7 +1298,33 @@ The two are often used together (Linux does both). Load balancing works **agains
 
 So there are **two levels of scheduling**: the OS chooses which software thread runs on each logical CPU, and each core chooses which hardware thread to run.
 
-### 11.4 Thread scheduling
+### 11.4 Real-time scheduling
+
+| Type | Requirement |
+|---|---|
+| **Hard real-time systems** | Required to complete a critical task within a **guaranteed amount of time**. A late result is a failure |
+| **Soft real-time computing** | Requires only that **critical processes receive priority** over less fortunate ones. There is no guarantee of when they will be scheduled |
+
+**Dispatch latency**
+
+> **Dispatch latency:** the time the dispatcher takes to **stop one process and start another**. For real-time work it must be kept very small.
+
+![Slide: dispatch latency](assets/w4-p27-dispatch-latency.png)
+
+Reading the figure from left to right:
+
+| Interval | Meaning |
+|---|---|
+| **Interrupt processing** | From the **event** until the real-time process is **made available** (ready) |
+| **Dispatch latency** | From the process being made available until it starts running. It has two phases |
+| — **Conflict phase** | (1) Preempt any process running in the kernel; (2) low-priority processes release the resources that the high-priority process needs |
+| — **Dispatch phase** | Schedule the high-priority process onto an available CPU |
+| **Real-time process execution** | The process runs and produces the response |
+| **Response interval** | The whole time from the **event** to the **response to the event** |
+
+To keep dispatch latency low, the kernel must be **preemptible** (or have preemption points), so that a real-time process does not have to wait for a long system call to finish.
+
+### 11.5 Thread scheduling
 
 On systems that support threads, it is **kernel-level threads**, not processes, that the OS schedules. User-level threads are managed by the thread library and must be mapped to a kernel thread (often through an LWP) to run on a CPU.
 
@@ -1280,13 +1356,13 @@ pthread_create(&tid, &attr, runner, NULL);
 
 Linux and macOS allow only `PTHREAD_SCOPE_SYSTEM`.
 
-### 11.5 Algorithm evaluation
+### 11.6 Algorithm evaluation
 
-How do we choose a CPU-scheduling algorithm for a particular system? First **define the criteria** (for example "maximize CPU utilization while keeping response time under 1 second"), then **evaluate** the candidate algorithms. There are four methods.
+How do we choose a CPU-scheduling algorithm for a particular system? First **define the criteria** (for example "maximize CPU utilization while keeping response time under 1 second"), then **evaluate** the candidate algorithms. The slides list three methods (**deterministic modelling, queueing models, simulations**); the textbook adds a fourth, **implementation**.
 
 **1. Deterministic modelling**
 
-A kind of **analytic evaluation**: take a **particular predetermined workload** and compute the performance of each algorithm for that workload.
+A kind of **analytic evaluation**: take a **particular predetermined workload** and compute the performance of each algorithm for that workload. It needs two things fixed in advance: a **predetermined workload** and **predefined criteria**.
 
 Example: five processes arrive at time 0 in the order P1 to P5 with CPU bursts **10, 29, 3, 7, 12 ms**.
 
@@ -1303,7 +1379,7 @@ For this workload SJF gives less than half the average waiting time of FCFS, and
 
 **2. Queueing models**
 
-- The computer system is described as a **network of servers**, each with a **queue** of waiting processes (the CPU with its ready queue, each I/O device with its device queue).
+- The computer system is described as a **network of servers**, each with a **queue** of waiting processes (the CPU with its ready queue, each I/O device with its device queue). If we define a queue for the CPU and for the various I/O devices, we can test the scheduling algorithms using **queueing theory**.
 - Bursts are not fixed; instead we know the **distribution** of CPU and I/O bursts and of **arrival times**. From the **arrival rate** and **service rate** we compute utilization, average queue length, and average waiting time. This is **queueing-network analysis**.
 
 > **Little's formula:** **`n = λ × W`**
@@ -1316,13 +1392,20 @@ For this workload SJF gives less than half the average waiting time of FCFS, and
 
 **3. Simulations**
 
-- **Program a model** of the computer system. A variable represents the **clock**; as it advances, the simulator changes the system state and **gathers statistics**.
+- **Program a model** of the computer system and **run the algorithm on this model**. A variable represents the **clock**; as it advances, the simulator changes the system state. After the simulation, the **statistics are gathered** and the efficiency is computed.
 - The input can be generated in three ways:
   - a **random-number generator** following probability distributions;
   - distributions defined mathematically or **measured empirically**;
-  - **trace tapes**: records of the actual sequence of events in a real system.
-- **Advantage:** more accurate than queueing models; trace tapes let different algorithms be compared on **exactly the same real input**.
-- **Disadvantages:** expensive in computer time; trace tapes need a lot of storage; designing, coding, and debugging the simulator is a major task.
+  - **trace data (trace tapes)**: data collected from **real processes on real machines**.
+
+![Slide: evaluation of CPU schedulers by simulation](assets/w4-p32-simulation-trace-tape.png)
+
+| Advantages | Disadvantages |
+|---|---|
+| **Accurate results**: more accurate than queueing models | **Difficult to produce** a simulator: designing, coding, and debugging it is a major task |
+| **Very realistic**: trace data lets different algorithms be compared on exactly the same real input | Simulations can take a **long time** to run |
+| | **Trace data may be difficult to collect** and needs a lot of storage |
+| | **Costly** |
 
 ```mermaid
 flowchart LR
@@ -1347,6 +1430,62 @@ flowchart LR
 | **Queueing models** | Arrival and service distributions | Approximate | Low to medium |
 | **Simulations** | Random data or trace tapes | High | Medium to high |
 | **Implementation** | Real system and real users | Highest | Very high |
+
+### 11.7 Practice problem from the slides (preemptive priority with I/O)
+
+![Slide: practice problem](assets/w4-p33-practice-problem.png)
+
+| Process | Arrival time | Priority | CPU burst 1 | I/O | CPU burst 2 |
+|---|---|---|---|---|---|
+| P1 | 0 | 2 | 1 | 5 | 3 |
+| P2 | 2 | 3 | 3 | 3 | 1 |
+| P3 | 3 | 1 | 2 | 3 | 1 |
+| P4 | 3 | 4 | 2 | 4 | 1 |
+
+**Question.** Apply the **preemptive priority** scheduling algorithm and find the completion time of P1, P2, P3, and P4.
+
+**Assumptions** (the slide does not state them, so write them in your answer):
+
+1. A **smaller number means a higher priority** (the textbook convention), so the order is P3 > P1 > P2 > P4.
+2. I/O is done **in parallel**: each process uses its own device and never waits for I/O.
+3. A process coming back from I/O rejoins the ready queue at once and **preempts** a lower-priority running process.
+
+**Step-by-step trace**
+
+| Time | Event | CPU runs |
+|---|---|---|
+| 0–1 | P1 arrives and runs its first burst (1). It then starts I/O, back at **6** | P1 |
+| 1–2 | Nothing is ready | idle |
+| 2–3 | P2 arrives and runs (3 → 2 left) | P2 |
+| 3–5 | P3 and P4 arrive. P3 (priority 1) **preempts P2** and runs its first burst (2). I/O until **8** | P3 |
+| 5–6 | Ready: P2, P4. P2 has the higher priority (2 → 1 left) | P2 |
+| 6–8 | P1 returns from I/O and **preempts P2**. It runs its second burst (3 → 1 left) | P1 |
+| 8–9 | P3 returns from I/O and **preempts P1**. It runs its second burst (1). **P3 completes at 9** | P3 |
+| 9–10 | P1 resumes (1 left). **P1 completes at 10** | P1 |
+| 10–11 | P2 finishes its first burst (1 left). I/O until **14** | P2 |
+| 11–13 | P4 finally runs its first burst (2). I/O until **17** | P4 |
+| 13–14 | Everything is in I/O | idle |
+| 14–15 | P2 returns and runs its second burst (1). **P2 completes at 15** | P2 |
+| 15–17 | P4 is still in I/O | idle |
+| 17–18 | P4 returns and runs its second burst (1). **P4 completes at 18** | P4 |
+
+**Gantt chart**
+
+```text
+| P1 | idle | P2 |  P3  | P2 |  P1  | P3 | P1 | P2 |  P4   | idle | P2 | idle  | P4 |
+0    1      2    3      5    6      8    9    10   11      13     14   15      17   18
+```
+
+**Answer**
+
+| Process | Completion time | Turnaround time (completion − arrival) |
+|---|---|---|
+| P1 | **10** | 10 |
+| P2 | **15** | 13 |
+| P3 | **9** | 6 |
+| P4 | **18** | 15 |
+
+**If your instructor uses "larger number = higher priority"** (P4 > P2 > P1 > P3), the same method gives the CPU order P1(0–1), idle(1–2), P2(2–3), P4(3–5), P2(5–7), P1(7–9), P4(9–10), P2(10–11), P1(11–12), P3(12–14), idle(14–17), P3(17–18), so the completion times are **P1 = 12, P2 = 11, P3 = 18, P4 = 10**.
 
 ---
 
@@ -3410,6 +3549,533 @@ Take resources away from some processes and give them to others until the deadlo
 
 ---
 
+## Appendix A. Processes and interprocess communication (Chapter 3)
+
+> **Source note:** built from `ch3.ppt` (Chapter 3: Processes, *Operating System Concepts*, 10th edition). This chapter is **not in the T2 syllabus line**, but threads, scheduling, synchronization, and deadlocks all assume it. Use it as background: process states, the PCB, context switching, `fork()`/`exec()`/`wait()`, and the producer-consumer problem come back again and again in Parts 1 to 3.
+
+### A.1 Process concept
+
+> **Process:** a **program in execution**. Process execution must progress in **sequential** fashion.
+
+A process has several parts:
+
+| Part | Contents |
+|---|---|
+| **Text section** | The program code |
+| **Current activity** | The **program counter** and the processor **registers** |
+| **Stack** | Temporary data: function parameters, return addresses, local variables |
+| **Data section** | Global variables |
+| **Heap** | Memory dynamically allocated during run time |
+
+![Slide: process in memory](assets/ch3-p06-process-in-memory.png)
+
+![Slide: memory layout of a C program](assets/ch3-p07-c-program-memory-layout.png)
+
+**Program vs process**
+
+| Program | Process |
+|---|---|
+| **Passive** entity stored on disk (an executable file) | **Active** entity |
+| Becomes a process when the executable file is **loaded into memory** | Has a program counter, stack, data section, and heap |
+| One program | Can be **several processes** (for example many users running the same program) |
+
+Execution of a program starts through GUI mouse clicks, a command-line entry of its name, and so on.
+
+### A.2 Process states
+
+As a process executes, it changes **state**.
+
+| State | Meaning |
+|---|---|
+| **New** | The process is being created |
+| **Ready** | The process is waiting to be assigned to a processor |
+| **Running** | Instructions are being executed |
+| **Waiting** | The process is waiting for some event to occur (for example I/O completion) |
+| **Terminated** | The process has finished execution |
+
+![Slide: diagram of process state](assets/ch3-p09-process-state-diagram.png)
+
+| Transition | Cause |
+|---|---|
+| New → Ready | Admitted |
+| Ready → Running | **Scheduler dispatch** |
+| Running → Ready | **Interrupt** (for example the time slice expires) |
+| Running → Waiting | I/O or event wait |
+| Waiting → Ready | I/O or event completion |
+| Running → Terminated | Exit |
+
+Only **one** process can be running on a processor core at any instant; many processes may be ready or waiting. A waiting process never goes straight back to running: it always passes through **ready**.
+
+### A.3 Process Control Block (PCB)
+
+> **PCB (also called task control block):** the data structure holding the information associated with each process.
+
+| Field | What it stores |
+|---|---|
+| **Process state** | Running, waiting, and so on |
+| **Program counter** | Location of the next instruction to execute |
+| **CPU registers** | Contents of all process-centric registers |
+| **CPU-scheduling information** | Priorities, scheduling-queue pointers |
+| **Memory-management information** | Memory allocated to the process |
+| **Accounting information** | CPU used, clock time elapsed since start, time limits |
+| **I/O status information** | I/O devices allocated to the process, list of open files |
+
+![Slide: process control block](assets/ch3-p10-pcb.png)
+
+**Threads.** So far a process has a **single thread of execution**. With **multiple program counters per process**, multiple locations can execute at once: these are multiple threads of control. The PCB must then store thread details and several program counters. This is covered in sections 2 to 10.
+
+**Process representation in Linux.** A process is represented by the C structure `task_struct`:
+
+```c
+pid_t pid;                    /* process identifier */
+long state;                   /* state of the process */
+unsigned int time_slice;      /* scheduling information */
+struct task_struct *parent;   /* this process's parent */
+struct list_head children;    /* this process's children */
+struct files_struct *files;   /* list of open files */
+struct mm_struct *mm;         /* address space of this process */
+```
+
+### A.4 Process scheduling
+
+- **Goal:** maximize CPU use, and quickly switch processes onto a CPU core.
+- The **process scheduler** selects among the available processes for the next execution on a CPU core.
+- It maintains **scheduling queues** of processes:
+
+| Queue | Contents |
+|---|---|
+| **Ready queue** | All processes residing in main memory, ready and waiting to execute |
+| **Wait queues** | Processes waiting for an event (for example I/O) |
+
+- Processes **migrate** among the various queues during their lifetime.
+
+![Slide: ready and wait queues](assets/ch3-p14-ready-and-wait-queues.png)
+
+![Slide: representation of process scheduling (queueing diagram)](assets/ch3-p15-queueing-diagram.png)
+
+A running process leaves the CPU for one of four reasons shown in the queueing diagram: it issues an **I/O request**, its **time slice expires**, it **creates a child** and waits for it to terminate, or it **waits for an interrupt**. In every case it eventually returns to the ready queue.
+
+**Context switch**
+
+> **Context switch:** when the CPU switches to another process, the system **saves the state of the old process** and **loads the saved state of the new process**. The context of a process is represented in its **PCB**.
+
+![Slide: CPU switch from process to process](assets/ch3-p16-context-switch.png)
+
+- Context-switch time is **pure overhead**: the system does no useful work while switching.
+- The more complex the OS and the PCB, the **longer** the context switch.
+- The time depends on **hardware support**: some hardware provides multiple sets of registers per CPU, so several contexts can be loaded at once.
+
+**Multitasking in mobile systems**
+
+| System | Behaviour |
+|---|---|
+| **Early iOS** | Only one process runs; the others are suspended |
+| **iOS** | A single **foreground** process (controlled through the user interface) and multiple **background** processes (in memory and running, but not on the display, and with limits: a single short task, receiving event notifications, specific long-running tasks such as audio playback) |
+| **Android** | Runs foreground and background with **fewer limits**. A background process uses a **service** to perform tasks; the service keeps running even if the background process is suspended, has no user interface, and uses little memory |
+
+### A.5 Operations on processes
+
+The system must provide mechanisms for **process creation** and **process termination**.
+
+**Process creation**
+
+- A **parent** process creates **children**, which in turn create other processes, forming a **tree of processes**.
+- A process is identified and managed through a **process identifier (pid)**.
+
+![Slide: a tree of processes in Linux](assets/ch3-p21-linux-process-tree.png)
+
+| Design choice | Options |
+|---|---|
+| **Resource sharing** | Parent and children share **all** resources · children share a **subset** of the parent's resources · parent and child share **no** resources |
+| **Execution** | Parent and children execute **concurrently** · parent **waits** until the children terminate |
+| **Address space** | Child is a **duplicate** of the parent · child has a **new program** loaded into it |
+
+**UNIX system calls**
+
+| Call | Effect |
+|---|---|
+| `fork()` | Creates a new process (a copy of the parent). Returns **0 in the child** and the **child's pid in the parent**; a negative value means failure |
+| `exec()` | Used after `fork()` to **replace the process's memory space with a new program** |
+| `wait()` | The parent waits for the child to terminate |
+| `exit()` | The process terminates and asks the OS to delete it |
+
+![Slide: fork, exec, and wait](assets/ch3-p22-fork-exec-wait.png)
+
+```c
+#include <sys/types.h>
+#include <stdio.h>
+#include <unistd.h>
+
+int main()
+{
+    pid_t pid;
+
+    /* fork a child process */
+    pid = fork();
+
+    if (pid < 0) {                 /* error occurred */
+        fprintf(stderr, "Fork Failed");
+        return 1;
+    }
+    else if (pid == 0) {           /* child process */
+        execlp("/bin/ls", "ls", NULL);
+    }
+    else {                         /* parent process */
+        /* parent will wait for the child to complete */
+        wait(NULL);
+        printf("Child Complete");
+    }
+
+    return 0;
+}
+```
+
+On Windows the equivalent is `CreateProcess()`, which creates the child **and** loads the specified program into it in one call; the parent then waits with `WaitForSingleObject()`.
+
+**Process termination**
+
+- A process executes its last statement and asks the OS to delete it using **`exit()`**. Status data is returned from child to parent through `wait()`, and the process's resources are **deallocated** by the OS.
+- A parent may terminate its children with **`abort()`**. Reasons:
+  - the child has **exceeded its allocated resources**;
+  - the task assigned to the child is **no longer required**;
+  - the parent is exiting, and the OS does not allow a child to continue if its parent terminates.
+- **Cascading termination:** on such systems, when a process terminates, all its children, grandchildren, and so on are terminated too. The termination is initiated by the operating system.
+- The parent waits with `pid = wait(&status);`, which returns the status information and the pid of the terminated child.
+
+| Term | Meaning |
+|---|---|
+| **Zombie** | A process that has terminated, but whose parent has **not yet called `wait()`** |
+| **Orphan** | A process whose parent **terminated without calling `wait()`** |
+
+**Android process importance hierarchy.** Mobile systems often terminate processes to reclaim resources such as memory. From most to least important: **foreground → visible → service → background → empty**. Android terminates the **least important** processes first.
+
+**Multiprocess architecture: the Chrome browser.** Many browsers ran as a single process, so one misbehaving site could hang or crash the whole browser. Chrome uses three kinds of process:
+
+| Process | Role |
+|---|---|
+| **Browser** | Manages the user interface, disk I/O, and network I/O |
+| **Renderer** | Renders web pages (HTML, JavaScript); a new renderer for each site opened. Runs in a **sandbox** that restricts disk and network I/O, limiting the effect of security exploits |
+| **Plug-in** | One process for each type of plug-in |
+
+### A.6 Interprocess communication (IPC)
+
+| Independent process | Cooperating process |
+|---|---|
+| **Cannot** affect or be affected by the execution of another process | **Can** affect or be affected by other processes, including by sharing data |
+
+**Reasons for process cooperation:** information sharing, computation speedup, modularity, convenience.
+
+Cooperating processes need **interprocess communication**. There are two models.
+
+![Slide: communication models: shared memory and message passing](assets/ch3-p30-communication-models.png)
+
+| Aspect | Shared memory | Message passing |
+|---|---|---|
+| Mechanism | A region of memory shared by the communicating processes | Messages exchanged with `send()` and `receive()` |
+| Controlled by | The **user processes** | The **operating system** (kernel) |
+| System calls | Needed only to **set up** the shared region | Needed for **every** message |
+| Speed | Faster | Slower |
+| Synchronization | The **processes** must synchronize their own access | Handled by the message system |
+| Best suited to | Large amounts of data on one machine | Small amounts of data; distributed systems |
+
+**Producer-consumer problem.** The standard paradigm for cooperating processes: a **producer** process produces information that is consumed by a **consumer** process.
+
+| Buffer type | Meaning |
+|---|---|
+| **Unbounded buffer** | No practical limit on the size of the buffer; the producer never waits |
+| **Bounded buffer** | Fixed buffer size; the producer waits when the buffer is full, and the consumer waits when it is empty |
+
+### A.7 IPC in shared-memory systems
+
+- An area of memory is shared among the processes that wish to communicate.
+- The communication is under the control of the **user processes**, not the operating system.
+- The major issue is providing a mechanism that lets the processes **synchronize** their actions when they access the shared memory. That is the subject of Part 2 (sections 12 to 21).
+
+**Bounded buffer: shared data**
+
+```c
+#define BUFFER_SIZE 10
+
+typedef struct {
+    . . .
+} item;
+
+item buffer[BUFFER_SIZE];
+int in = 0;      /* next free position */
+int out = 0;     /* first full position */
+```
+
+**Producer**
+
+```c
+item next_produced;
+
+while (true) {
+    /* produce an item in next_produced */
+    while (((in + 1) % BUFFER_SIZE) == out)
+        ;   /* do nothing: buffer full */
+    buffer[in] = next_produced;
+    in = (in + 1) % BUFFER_SIZE;
+}
+```
+
+**Consumer**
+
+```c
+item next_consumed;
+
+while (true) {
+    while (in == out)
+        ;   /* do nothing: buffer empty */
+    next_consumed = buffer[out];
+    out = (out + 1) % BUFFER_SIZE;
+    /* consume the item in next_consumed */
+}
+```
+
+| Condition | Test |
+|---|---|
+| Buffer **empty** | `in == out` |
+| Buffer **full** | `((in + 1) % BUFFER_SIZE) == out` |
+
+The solution is correct, but it can use only **`BUFFER_SIZE − 1`** elements: one slot is always left empty so that "full" and "empty" can be told apart. Section 12.2 fixes this with a shared `counter`, and that is exactly what introduces the **race condition**.
+
+### A.8 IPC in message-passing systems
+
+- A mechanism for processes to communicate **and to synchronize** their actions **without shared variables**.
+- The IPC facility provides two operations: **`send(message)`** and **`receive(message)`**.
+- The message size is either **fixed** or **variable**.
+
+If processes P and Q wish to communicate, they must **establish a communication link** and then **exchange messages** through send/receive.
+
+**Implementation questions:** How are links established? Can a link be associated with more than two processes? How many links can there be between a pair of processes? What is the capacity of a link? Is the message size fixed or variable? Is a link unidirectional or bidirectional?
+
+| Level | Choices |
+|---|---|
+| **Physical** implementation of a link | Shared memory · hardware bus · network |
+| **Logical** implementation of a link | Direct or indirect · synchronous or asynchronous · automatic or explicit buffering |
+
+**Direct vs indirect communication**
+
+| Aspect | Direct | Indirect |
+|---|---|---|
+| Naming | Processes **name each other** explicitly | Messages go through **mailboxes (ports)**, each with a unique id |
+| Primitives | `send(P, message)`, `receive(Q, message)` | `send(A, message)`, `receive(A, message)` for mailbox A |
+| Link establishment | **Automatic** | Only if the processes **share a common mailbox** |
+| Processes per link | Exactly **one pair** | **Many** processes |
+| Links per pair | Exactly **one** | **Several** (one per shared mailbox) |
+| Direction | May be unidirectional, usually **bidirectional** | Unidirectional or bidirectional |
+
+Indirect communication needs three operations: **create** a mailbox, **send and receive** through it, and **destroy** it.
+
+**Mailbox sharing problem.** P1, P2, and P3 share mailbox A. P1 sends; P2 and P3 both receive. Who gets the message? Solutions:
+
+1. allow a link to be associated with **at most two** processes;
+2. allow **only one process at a time** to execute a receive operation;
+3. let the **system select the receiver arbitrarily**, and notify the sender who it was.
+
+**Synchronization**
+
+| Operation | Blocking (synchronous) | Non-blocking (asynchronous) |
+|---|---|---|
+| **Send** | The sender is blocked until the message is received | The sender sends the message and continues |
+| **Receive** | The receiver is blocked until a message is available | The receiver gets either a valid message or a **null** message |
+
+Different combinations are possible. If **both** send and receive are blocking, we have a **rendezvous**.
+
+With blocking send and receive, the producer-consumer problem becomes trivial:
+
+```c
+/* producer */                              /* consumer */
+message next_produced;                      message next_consumed;
+while (true) {                              while (true) {
+    /* produce an item in next_produced */      receive(next_consumed);
+    send(next_produced);                        /* consume the item in next_consumed */
+}                                           }
+```
+
+**Buffering.** A queue of messages is attached to the link. It is implemented in one of three ways:
+
+| Capacity | Queue length | Sender behaviour |
+|---|---|---|
+| **Zero capacity** | No messages are queued | The sender must **wait for the receiver** (rendezvous) |
+| **Bounded capacity** | Finite length of *n* messages | The sender waits **only if the link is full** |
+| **Unbounded capacity** | Infinite length | The sender **never waits** |
+
+### A.9 Examples of IPC systems
+
+**POSIX shared memory**
+
+| Step | Call |
+|---|---|
+| Create (or open) the shared-memory segment | `shm_fd = shm_open(name, O_CREAT \| O_RDWR, 0666);` |
+| Set the size of the object | `ftruncate(shm_fd, 4096);` |
+| Memory-map the object | `ptr = mmap(0, SIZE, PROT_WRITE, MAP_SHARED, shm_fd, 0);` |
+| Read and write | Through the pointer returned by `mmap()` |
+| Remove the object | `shm_unlink(name);` |
+
+Producer:
+
+```c
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <fcntl.h>
+#include <sys/shm.h>
+#include <sys/stat.h>
+
+int main()
+{
+    const int SIZE = 4096;                 /* size (in bytes) of the shared memory object */
+    const char *name = "OS";               /* name of the shared memory object */
+    const char *message_0 = "Hello";       /* strings written to shared memory */
+    const char *message_1 = "World!";
+
+    int shm_fd;                            /* shared memory file descriptor */
+    void *ptr;                             /* pointer to the shared memory object */
+
+    shm_fd = shm_open(name, O_CREAT | O_RDWR, 0666);             /* create the object */
+    ftruncate(shm_fd, SIZE);                                     /* configure its size */
+    ptr = mmap(0, SIZE, PROT_WRITE, MAP_SHARED, shm_fd, 0);      /* memory-map it */
+
+    sprintf(ptr, "%s", message_0);                               /* write to it */
+    ptr += strlen(message_0);
+    sprintf(ptr, "%s", message_1);
+    ptr += strlen(message_1);
+
+    return 0;
+}
+```
+
+Consumer:
+
+```c
+int main()
+{
+    const int SIZE = 4096;
+    const char *name = "OS";
+    int shm_fd;
+    void *ptr;
+
+    shm_fd = shm_open(name, O_RDONLY, 0666);                     /* open the object */
+    ptr = mmap(0, SIZE, PROT_READ, MAP_SHARED, shm_fd, 0);       /* memory-map it */
+
+    printf("%s", (char *)ptr);                                   /* read from it */
+
+    shm_unlink(name);                                            /* remove the object */
+    return 0;
+}
+```
+
+**Mach**
+
+- Communication is **message based**; even system calls are messages.
+- Each task gets **two ports** at creation: **Kernel** and **Notify**.
+- Messages are sent and received with **`mach_msg()`**; ports are created with **`mach_port_allocate()`**.
+- If a mailbox is full, the sender has four options: **wait indefinitely**, **wait at most *n* milliseconds**, **return immediately**, or **temporarily cache** the message.
+
+**Windows**
+
+- Message-passing centric, through the **advanced local procedure call (ALPC)** facility, which works only between processes on the **same system**.
+- Uses **ports** (like mailboxes) to establish and maintain communication channels.
+
+```mermaid
+flowchart LR
+    C["Client"] -->|"1. opens a handle to the connection port"| CP["Connection port"]
+    C -->|"2. sends a connection request"| S["Server"]
+    S -->|"3. creates two private communication ports, returns one handle"| C
+    C <-->|"4. messages, callbacks, and replies through the port handles"| S
+```
+
+### A.10 Pipes
+
+> **Pipe:** a **conduit** allowing two processes to communicate.
+
+Four questions to ask about any pipe: Is communication **unidirectional or bidirectional**? If two-way, is it **half or full duplex**? Must there be a **relationship** (such as parent-child) between the processes? Can it be used **over a network**?
+
+| Aspect | Ordinary (anonymous) pipes | Named pipes |
+|---|---|---|
+| Direction | **Unidirectional** | **Bidirectional** |
+| Relationship needed | **Parent-child** | **None** |
+| Access | Cannot be accessed from outside the process that created it | Several processes can use it |
+| Style | Producer writes to the **write end**; consumer reads from the **read end** | General communication |
+| Platforms | UNIX; Windows calls them **anonymous pipes** | Both UNIX and Windows |
+
+![Slide: ordinary pipe](assets/ch3-p58-ordinary-pipe.png)
+
+In UNIX an ordinary pipe is created with `pipe(int fd[])`: **`fd[0]` is the read end** and **`fd[1]` is the write end**. Typically a parent creates the pipe and uses it to communicate with a child it creates with `fork()`.
+
+### A.11 Communication in client-server systems
+
+**Sockets**
+
+> **Socket:** an **endpoint for communication**, identified by an **IP address concatenated with a port number**.
+
+- The **port** is a number included at the start of a message packet to differentiate the network services on a host.
+- The socket **`161.25.19.8:1625`** refers to port **1625** on host **161.25.19.8**.
+- Communication takes place between a **pair of sockets**.
+- All ports **below 1024** are **well known** and used for standard services.
+- The special IP address **`127.0.0.1`** (**loopback**) refers to the system on which the process is running.
+
+![Slide: socket communication](assets/ch3-p62-socket-communication.png)
+
+| Java socket type | Class | Nature |
+|---|---|---|
+| **Connection-oriented (TCP)** | `Socket`, `ServerSocket` | Reliable stream |
+| **Connectionless (UDP)** | `DatagramSocket` | Individual datagrams |
+| **Multicast** | `MulticastSocket` | Data can be sent to multiple recipients |
+
+The slides' "Date" server listens on a port with a `ServerSocket`, blocks in `accept()`, and writes the date to each client that connects; the client opens a `Socket` to `127.0.0.1` on that port and reads the reply.
+
+**Remote procedure calls (RPC)**
+
+> **RPC:** abstracts procedure calls between processes on **networked systems**. It again uses **ports** for service differentiation.
+
+- **Stub:** a client-side **proxy** for the actual procedure on the server.
+- The **client-side stub** locates the server and **marshals** the parameters.
+- The **server-side stub** receives the message, **unpacks** the marshalled parameters, and performs the procedure on the server.
+- On Windows, stub code is compiled from a specification written in **Microsoft Interface Definition Language (MIDL)**.
+- **Data representation** is handled through the **External Data Representation (XDR)** format (the slide prints "XDL"), to account for different architectures such as **big-endian** and **little-endian**.
+- Remote communication has **more failure scenarios** than local communication, so messages can be delivered **exactly once** rather than **at most once**.
+- The OS typically provides a **rendezvous (matchmaker)** service to connect client and server.
+
+![Slide: execution of RPC](assets/ch3-p67-rpc-execution.png)
+
+### A.12 Key terms and likely questions
+
+| Term | One-line meaning |
+|---|---|
+| Process | A program in execution |
+| PCB | Per-process data structure: state, program counter, registers, scheduling, memory, accounting, I/O information |
+| Ready queue | Processes in main memory, ready and waiting to execute |
+| Context switch | Saving the state of the old process and loading the saved state of the new one |
+| `fork()` / `exec()` / `wait()` | Create a child / load a new program / wait for the child to terminate |
+| Zombie | Terminated process whose parent has not yet called `wait()` |
+| Orphan | Process whose parent terminated without calling `wait()` |
+| Cascading termination | Terminating a process terminates all of its descendants |
+| Rendezvous | Both send and receive are blocking (zero-capacity link) |
+| Mailbox (port) | Object through which messages are sent and received in indirect communication |
+| Ordinary pipe | Unidirectional, parent-child only |
+| Named pipe | Bidirectional, no parent-child relationship needed |
+| Socket | Endpoint for communication: IP address plus port |
+| Stub | Client-side proxy that marshals the parameters of a remote procedure call |
+
+**Likely questions**
+
+1. Define a process. Draw the process state diagram and explain each transition.
+2. What is a PCB? List its fields.
+3. What is a context switch? Why is it pure overhead?
+4. Explain `fork()`, `exec()`, and `wait()` with a C program. What does `fork()` return in the parent and in the child?
+5. Distinguish a zombie process from an orphan process.
+6. Compare shared memory and message passing.
+7. Write the bounded-buffer producer and consumer using shared memory. Why can only `BUFFER_SIZE − 1` slots be used?
+8. Compare direct and indirect communication. What is the mailbox-sharing problem?
+9. Explain blocking and non-blocking send and receive. What is a rendezvous?
+10. Compare ordinary pipes and named pipes.
+11. What is a socket? What is an RPC, and what does a stub do?
+
+---
+
 ## 33. Rapid revision tables
 
 ### 33.1 One-line definitions
@@ -3450,7 +4116,11 @@ Take resources away from some processes and give them to others until the deadlo
 | `clone()` | Linux system call that creates a task; flags control what is shared |
 | SMP | Each processor is self-scheduling |
 | Processor affinity | Tendency of a process to stay on the same processor |
+| MLQ | Multilevel queue: the ready queue is split into separate queues; a process never changes queue |
 | MLFQ | Multilevel feedback queue: processes move between queues based on CPU-burst behaviour |
+| Hard real-time | A critical task must complete within a guaranteed amount of time |
+| Soft real-time | Critical processes receive priority over others, with no guarantee |
+| Dispatch latency | Time the dispatcher takes to stop one process and start another (conflict phase + dispatch phase) |
 | Aging | Moving a long-waiting process to a higher-priority queue to prevent starvation |
 | Load balancing | Keeping the workload evenly distributed across processors |
 | Memory stall | Time a processor waits for data to become available from memory |
@@ -3843,6 +4513,7 @@ Take resources away from some processes and give them to others until the deadlo
 10. **RAG reading.** Draw the RAG of section 25.3, list the cycles, and state which processes are deadlocked.
 11. **MLFQ trace.** With Q0 (RR, 8 ms), Q1 (RR, 16 ms), Q2 (FCFS), trace single processes with bursts 5, 20, and 40 ms. *(Ans: 5 → finishes in Q0; 20 → 8 in Q0 + 12 in Q1; 40 → 8 in Q0 + 16 in Q1 + 16 in Q2.)*
 12. **Deterministic modelling.** Bursts 10, 29, 3, 7, 12 ms, all arriving at time 0. Find the average waiting time under FCFS, SJF, and RR (q = 10). *(Ans: 28, 13, 23 ms.)*
+13. **Preemptive priority with I/O (slide practice problem).** Solve section 11.7. *(Ans, smaller number = higher priority: P1 = 10, P2 = 15, P3 = 9, P4 = 18.)*
 13. **Little's formula.** On average 7 processes arrive per second and 14 are in the queue. Find the average waiting time. *(Ans: W = n / λ = 2 s.)*
 
 ---
