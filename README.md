@@ -1,12 +1,13 @@
 # Operating Systems — T2 Complete Exam-Ready Notes
 
-> **Level:** Intermediate | **Coverage:** Threads and Concurrency + Multiple-Processor Scheduling + Process Synchronization + Deadlocks
+> **Level:** Intermediate | **Coverage:** Threads and Concurrency + Multilevel Feedback Queue, Multiprocessor and Thread Scheduling, Algorithm Evaluation + Process Synchronization + Deadlocks
 > **Built from:** `ch4.ppt` (Threads and Concurrency), `DOC-20260825-WA0000.pdf` (Threads lecture), `ch6.pdf` (Process Synchronization), `Week 6_1 / 6_2 / 6_3.pptx` (Critical section, Semaphores, Monitors), `ch7.ppt` (Synchronization Examples), `ch8.ppt` (Deadlocks), `Week7_Deadlock.pptx` (Deadlock lecture with solved problems).
 > **Exam use:** Definitions, diagrams, comparisons, algorithms, code interpretation, Banker's and detection numericals, viva points, and practice questions.
 
 **Syllabus covered**
 
-- User and Kernel threads, Multithreading models, Multiple processor scheduling.
+- User and Kernel threads, Multithreading models.
+- Multilevel feedback queue scheduling, Multiple processor scheduling, Thread scheduling, Algorithm evaluation.
 - Process synchronization: Critical section problems, Semaphores, Synchronization hardware and monitors.
 - Deadlocks: System model, Characterization, Methods for handling deadlocks, Deadlock prevention, Avoidance and detection, Recovery from deadlock.
 
@@ -14,7 +15,7 @@
 
 ## Contents
 
-### Part 1 — Threads, User and Kernel Threads, Multithreading Models, Multiple-Processor Scheduling
+### Part 1 — Threads, User and Kernel Threads, Multithreading Models, MLFQ, Multiprocessor and Thread Scheduling, Algorithm Evaluation
 
 1. [Learning outcomes](#1-learning-outcomes)
 2. [Why threads: motivation](#2-why-threads-motivation)
@@ -34,7 +35,8 @@
 9. [Threading issues](#9-threading-issues)
    - 9.1 fork and exec semantics · 9.2 Signal handling · 9.3 Thread cancellation · 9.4 Thread-local storage and thread-specific data · 9.5 Thread safety · 9.6 Scheduler activations and LWP · 9.7 Pros and cons of multithreading
 10. [Operating-system examples: Windows and Linux threads](#10-operating-system-examples-windows-and-linux-threads)
-11. [Multiple-processor scheduling](#11-multiple-processor-scheduling)
+11. [Scheduling: multilevel feedback queue, multiple processors, threads, and algorithm evaluation](#11-scheduling-multilevel-feedback-queue-multiple-processors-threads-and-algorithm-evaluation)
+    - 11.1 Multilevel queue (recap) · 11.2 Multilevel feedback queue (MLFQ) · 11.3 Multiple-processor scheduling · 11.4 Thread scheduling · 11.5 Algorithm evaluation
 
 ### Part 2 — Process Synchronization: Critical Section, Synchronization Hardware, Semaphores, Monitors
 
@@ -90,7 +92,10 @@ After studying these notes, you should be able to:
 - use the Pthreads API (`pthread_create`, `pthread_join`, `pthread_exit`, `pthread_cancel`) and describe Windows and Java threading;
 - describe implicit threading: thread pools, fork-join, OpenMP, Grand Central Dispatch, and TBB;
 - explain threading issues: `fork()`/`exec()` semantics, signal handling, cancellation, thread-local storage, thread safety, and scheduler activations;
-- explain multiple-processor scheduling: AMP vs SMP, processor affinity, load balancing;
+- explain multilevel feedback queue scheduling with its five parameters and the three-queue example;
+- explain multiple-processor scheduling: AMP vs SMP, processor affinity, load balancing, multicore processors;
+- distinguish process-contention scope and system-contention scope in thread scheduling;
+- compare the four algorithm-evaluation methods and apply Little's formula;
 - define a race condition and the critical-section problem with its three requirements;
 - trace Peterson's solution and the hardware solutions (TestAndSet, Swap, compare_and_swap);
 - define semaphores, implement them with and without busy waiting, and use them for the classical problems;
@@ -143,6 +148,10 @@ flowchart LR
     end
 ```
 
+![Slide: four processes, one per CPU](assets/doc-p03-four-processes.png)
+
+![Slide: four threads in one process](assets/doc-p04-four-threads.png)
+
 ### 2.2 Where threads are used
 
 - Most modern applications are **multithreaded**. Threads run *within* an application.
@@ -156,6 +165,8 @@ flowchart LR
 - **Kernels are generally multithreaded** as well.
 
 ### 2.3 Multithreaded server architecture
+
+![Slide: multithreaded server architecture](assets/ch4-p06-multithreaded-server.png)
 
 A busy server does not create a new process for each client. Instead:
 
@@ -190,6 +201,8 @@ Every thread has its own:
 | Stack | Open files, signals, other OS resources |
 
 ### 3.2 Single-threaded vs multithreaded process
+
+![Slide: single and multithreaded processes](assets/ch4-p05-single-vs-multithreaded.png)
 
 ```mermaid
 flowchart LR
@@ -267,6 +280,8 @@ Multicore and multiprocessor systems put pressure on programmers. The five chall
 
 ### 4.3 Concurrency vs parallelism
 
+![Slide: concurrency vs parallelism](assets/ch4-p09-concurrency-vs-parallelism.png)
+
 | Concurrency | Parallelism |
 |---|---|
 | Supports **more than one task making progress** | The system can perform more than one task **simultaneously** |
@@ -286,12 +301,16 @@ core 2:       T2  T4  T2  T4  T2 ...                          → time
 
 ### 4.4 Data vs task parallelism
 
+![Slide: data and task parallelism](assets/ch4-p11-data-task-parallelism.png)
+
 | Type | Idea | Example |
 |---|---|---|
 | **Data parallelism** | Distribute **subsets of the same data** across cores and perform the **same operation** on each | Summing an array: core 0 sums elements `0..N/2-1`, core 1 sums the rest |
 | **Task parallelism** | Distribute **threads (tasks)** across cores, each thread doing a **unique operation** | One thread computes the mean while another computes the standard deviation |
 
 ### 4.5 Amdahl's Law
+
+![Slide: Amdahl's Law graph](assets/ch4-p13-amdahl-graph.png)
 
 Amdahl's Law identifies the performance gain from adding cores to an application that has both **serial** and **parallel** parts.
 
@@ -323,6 +342,8 @@ speedup  ≤  ─────────────────────
 
 ### 5.2 Kernel threads
 
+![Slide: user and kernel threads](assets/ch4-p15-user-kernel-threads.png)
+
 - Created, supported, and managed by the **kernel**.
 - Also called **lightweight processes**.
 - Virtually all general-purpose operating systems support them: **Windows, Linux, Mac OS X, iOS, Android**.
@@ -345,6 +366,8 @@ flowchart TB
 ```
 
 ### 5.3 ULT states vs process states
+
+![Slide: relationships between ULT states and process states](assets/doc-p12-ult-states.png)
 
 With pure user-level threads the kernel schedules the **process**, while the library schedules the **threads**. So a thread's state and its process's state can look inconsistent. The lecture (from Stallings) shows process B with two threads:
 
@@ -409,6 +432,8 @@ A multithreading model describes how **user threads are mapped to kernel threads
 
 ### 6.1 Many-to-One
 
+![Slide: many-to-one model](assets/ch4-p17-many-to-one.png)
+
 Many user-level threads are mapped to a **single** kernel thread.
 
 ```mermaid
@@ -426,6 +451,8 @@ flowchart TB
 
 ### 6.2 One-to-One
 
+![Slide: one-to-one model](assets/ch4-p18-one-to-one.png)
+
 Each user-level thread maps to **one** kernel thread.
 
 ```mermaid
@@ -442,6 +469,8 @@ flowchart TB
 - Examples: **Windows** (NT/XP/2000), **Linux**.
 
 ### 6.3 Many-to-Many
+
+![Slide: many-to-many model](assets/ch4-p19-many-to-many.png)
 
 Many user-level threads are mapped to **many** kernel threads.
 
@@ -461,6 +490,8 @@ flowchart TB
 - Otherwise **not very common**.
 
 ### 6.4 Two-level model
+
+![Slide: two-level model](assets/ch4-p20-two-level.png)
 
 Similar to many-to-many, **except that it also allows a user thread to be bound to a kernel thread**. Important threads get a dedicated kernel thread while the rest are multiplexed.
 
@@ -487,6 +518,8 @@ A **thread library** gives the programmer an **API for creating and managing thr
 Three main libraries: **POSIX Pthreads**, **Windows (Win32)**, **Java**.
 
 ### 7.2 Pthreads API and example
+
+![Slide: pthread library calls](assets/doc-p21-pthread-library.png)
 
 - May be provided either as **user-level or kernel-level**.
 - A **POSIX standard (IEEE 1003.1c)** API for thread creation and synchronization.
@@ -715,6 +748,8 @@ pool.shutdown();        // rejects new tasks, finishes existing ones
 ```
 
 ### 8.2 Fork-Join
+
+![Slide: fork-join parallelism](assets/ch4-p39-fork-join.png)
 
 Multiple threads (tasks) are **forked**, and then **joined**. This is a divide-and-conquer strategy.
 
@@ -977,6 +1012,8 @@ It is unsafe because it **uses global or static values that are shared by all th
 
 ### 9.6 Scheduler activations and LWP
 
+![Slide: scheduler activations and the LWP](assets/ch4-p57-scheduler-activations.png)
+
 - Both the **M:M** and **Two-level** models require communication between the kernel and the thread library to keep an **appropriate number of kernel threads** allocated to the application.
 - They typically use an intermediate data structure between user and kernel threads: the **lightweight process (LWP)**.
   - To the user-thread library, an LWP appears to be a **virtual processor** on which the process can schedule a user thread to run.
@@ -1007,6 +1044,8 @@ flowchart TB
 ## 10. Operating-system examples: Windows and Linux threads
 
 ### 10.1 Windows threads
+
+![Slide: Windows thread data structures](assets/ch4-p61-windows-thread-structures.png)
 
 - The **Windows API** is the primary API for Windows applications.
 - It implements the **one-to-one** mapping, at kernel level.
@@ -1055,48 +1094,259 @@ flowchart LR
 
 ---
 
-## 11. Multiple-processor scheduling
+## 11. Scheduling: multilevel feedback queue, multiple processors, threads, and algorithm evaluation
 
-> **Source note:** this topic is in the syllabus, but none of the supplied decks has slides on it (it belongs to the CPU-scheduling chapter). The summary below is the standard treatment so that the syllabus line is covered. Check your CPU-scheduling slides for the instructor's exact wording.
+> **Source note:** these four topics are in the syllabus, but none of the supplied decks has slides on them (they belong to the CPU-scheduling chapter). This section is the standard textbook treatment, in the same form as your earlier notes. Check your CPU-scheduling slides for the instructor's exact wording and examples.
 
-When more than one CPU is available, **load sharing** becomes possible and scheduling becomes more complex.
+### 11.1 Multilevel queue (recap)
 
-### 11.1 Approaches
+In a **multilevel queue (MLQ)**, the ready queue is split into several separate queues, for example **foreground (interactive)** and **background (batch)**.
+
+- A process is **permanently assigned** to one queue (by type, priority, or memory size).
+- Each queue has its **own scheduling algorithm** (for example foreground: RR, background: FCFS).
+- Scheduling **between** the queues is either **fixed-priority preemptive** (serve the lower queue only when all higher queues are empty) or **time-sliced** (for example 80% of CPU time to foreground, 20% to background).
+- **Weakness:** it is inflexible, and lower queues can **starve**.
+
+### 11.2 Multilevel feedback queue (MLFQ)
+
+> **Multilevel feedback queue:** a scheduling algorithm in which a process **can move between queues** depending on its CPU-burst behaviour.
+
+**Idea**
+
+- A process that uses **too much CPU time** is **moved down** to a lower-priority queue.
+- **I/O-bound and interactive** processes, which have short CPU bursts, stay in the **higher-priority** queues.
+- A process that **waits too long** in a lower queue can be **moved up**. This is **aging**, and it prevents starvation.
+- The result approximates SJF **without knowing burst lengths in advance**: the scheduler learns from how the process behaves.
+
+**Five parameters define an MLFQ scheduler**
+
+1. the **number of queues**;
+2. the **scheduling algorithm for each queue**;
+3. the method used to decide when to **upgrade** a process to a higher-priority queue;
+4. the method used to decide when to **demote** a process to a lower-priority queue;
+5. the method used to decide **which queue a process enters** when it needs service.
+
+**Standard example: three queues**
+
+| Queue | Algorithm | Time quantum | Priority |
+|---|---|---|---|
+| **Q0** | Round Robin | 8 ms | Highest |
+| **Q1** | Round Robin | 16 ms | Middle |
+| **Q2** | FCFS | — | Lowest |
+
+**Rules**
+
+1. A new process enters **Q0**. When it gets the CPU it receives **8 ms**.
+2. If it does not finish in 8 ms, it is **moved to the tail of Q1**.
+3. In Q1 it receives **16 more ms**. If it still does not finish, it is **preempted and moved to Q2**.
+4. Q2 is served **FCFS**, and only when Q0 and Q1 are empty.
+5. A process arriving in a higher queue **preempts** a process running from a lower queue.
+
+```mermaid
+flowchart TB
+    N["New process"] --> Q0["Q0: Round Robin, quantum = 8 ms (highest priority)"]
+    Q0 -->|"finishes within 8 ms"| D["Done"]
+    Q0 -->|"uses the full 8 ms"| Q1["Q1: Round Robin, quantum = 16 ms"]
+    Q1 -->|"finishes within 16 ms"| D
+    Q1 -->|"uses the full 16 ms"| Q2["Q2: FCFS (lowest priority)"]
+    Q2 --> D
+    Q2 -. "aging: waited too long" .-> Q0
+```
+
+**Worked trace:** a process with a CPU burst of **30 ms** arrives when the system is otherwise idle.
+
+| Queue | Time given | Burst remaining afterwards |
+|---|---|---|
+| Q0 | 8 ms | 22 ms → demoted to Q1 |
+| Q1 | 16 ms | 6 ms → demoted to Q2 |
+| Q2 | 6 ms (FCFS) | 0 → finished |
+
+A process with a burst of **5 ms** finishes entirely in Q0. A process with a burst of **20 ms** uses 8 ms in Q0 and finishes its remaining 12 ms in Q1.
+
+**Effect**
+
+- Bursts of **8 ms or less** get the highest priority and finish quickly, so response time is good.
+- Bursts between **8 and 24 ms** are also served fairly quickly, at lower priority.
+- **Long CPU-bound** processes sink to Q2 and use whatever CPU time is left over.
+
+**Advantages and disadvantages**
+
+| Advantages | Disadvantages |
+|---|---|
+| Most **general** and flexible scheduling scheme | Most **complex** scheme |
+| Favours short and I/O-bound jobs without knowing burst times | Needs good values for all five parameters |
+| Aging prevents starvation | Moving processes between queues adds overhead |
+
+**MLQ vs MLFQ**
+
+| Aspect | Multilevel queue (MLQ) | Multilevel feedback queue (MLFQ) |
+|---|---|---|
+| Queue assignment | Permanent | Changes with behaviour |
+| Movement between queues | Not allowed | Allowed (demotion and upgrade) |
+| Starvation | Lower queues can starve | Prevented by aging |
+| Flexibility | Low | High |
+| Complexity and overhead | Lower | Higher |
+
+### 11.3 Multiple-processor scheduling
+
+When more than one CPU is available, **load sharing** becomes possible and scheduling becomes more complex. The usual assumption is that the processors are **homogeneous** (identical in function).
+
+**Approaches**
 
 | Approach | Description | Advantage | Disadvantage |
 |---|---|---|---|
 | **Asymmetric multiprocessing (AMP)** | One **master** processor makes all scheduling decisions and handles I/O and system activities. The other processors execute only user code. | Simple: only one processor touches the system data structures, so less data sharing is needed | The master can become a bottleneck |
-| **Symmetric multiprocessing (SMP)** | Each processor is **self-scheduling**. Ready processes are in one common queue, or each processor has its own private queue. | No single bottleneck; better load distribution | Access to shared data structures must be synchronized carefully |
+| **Symmetric multiprocessing (SMP)** | Each processor is **self-scheduling**. Ready processes are in one **common ready queue**, or each processor has its own **private queue**. | No single bottleneck; better load distribution | Access to shared data structures must be synchronized carefully |
 
 Most modern operating systems (Windows, Linux, macOS) use **SMP**.
 
-### 11.2 Processor affinity
+```mermaid
+flowchart LR
+    subgraph AMP["Asymmetric"]
+        M["Master CPU: scheduler, I/O, kernel work"] --> S1["CPU 1: user code"]
+        M --> S2["CPU 2: user code"]
+    end
+    subgraph SMP["Symmetric"]
+        RQ["Common ready queue (or one queue per CPU)"] --> C0["CPU 0: self-scheduling"]
+        RQ --> C1["CPU 1: self-scheduling"]
+        RQ --> C2["CPU 2: self-scheduling"]
+    end
+```
 
-> **Processor affinity:** a process tends to stay on the processor it is already running on, because that processor's cache already holds its data.
+**Processor affinity**
+
+> **Processor affinity:** a process tends to stay on the processor it is already running on, because that processor's cache already holds its data. Migrating it means the old cache contents are wasted and the new cache must be refilled.
 
 | Type | Meaning |
 |---|---|
 | **Soft affinity** | The OS *tries* to keep the process on the same processor but does not guarantee it |
 | **Hard affinity** | The process is *bound* to a set of processors and will not migrate (for example `sched_setaffinity()` on Linux) |
 
-On **NUMA** systems, a CPU reaches its local memory faster, so keeping a process near its memory matters even more.
+On **NUMA** (non-uniform memory access) systems, a CPU reaches its local memory faster than memory on another board, so keeping a process near its memory matters even more.
 
-### 11.3 Load balancing
+**Load balancing**
 
-Load balancing keeps the workload **evenly distributed** across processors in an SMP system.
+Load balancing keeps the workload **evenly distributed** across the processors of an SMP system. It is needed only when each processor has its **own private queue**; with a common queue, an idle processor simply takes the next process.
 
 | Technique | How it works |
 |---|---|
 | **Push migration** | A periodic task checks the load and **pushes** processes from overloaded to less-busy processors |
 | **Pull migration** | An **idle** processor **pulls** a waiting task from a busy processor |
 
-Load balancing works **against** processor affinity, because moving a process throws away its warm cache.
+The two are often used together (Linux does both). Load balancing works **against** processor affinity, because moving a process throws away its warm cache.
 
-### 11.4 Multicore processors and thread scheduling
+**Multicore processors**
 
-- A **multicore processor** places several cores on one chip. With hardware multithreading each core has several hardware threads, which the OS sees as logical CPUs.
-- **Process-contention scope (PCS):** the thread library schedules user threads onto LWPs; threads compete within the same process (many-to-one and many-to-many models).
-- **System-contention scope (SCS):** the kernel schedules kernel threads onto CPUs; threads compete with all threads in the system (one-to-one model, used by Windows and Linux).
+- A **multicore processor** places several processor cores on **one physical chip**. It is faster and uses less power than several single-core chips.
+- **Memory stall:** when a processor accesses memory, it may spend a significant time waiting for the data to become available (for example on a cache miss).
+- To use that waiting time, each core is given **two or more hardware threads**. When one thread stalls on memory, the core switches to another. The OS sees each hardware thread as a **logical processor**.
+
+| Multithreading type | When the core switches threads |
+|---|---|
+| **Coarse-grained** | Only on a long-latency event such as a memory stall; the switch is costly because the pipeline is flushed |
+| **Fine-grained (interleaved)** | At a much finer level, typically at instruction-cycle boundaries; the switch is cheap |
+
+So there are **two levels of scheduling**: the OS chooses which software thread runs on each logical CPU, and each core chooses which hardware thread to run.
+
+### 11.4 Thread scheduling
+
+On systems that support threads, it is **kernel-level threads**, not processes, that the OS schedules. User-level threads are managed by the thread library and must be mapped to a kernel thread (often through an LWP) to run on a CPU.
+
+| Aspect | Process-contention scope (PCS) | System-contention scope (SCS) |
+|---|---|---|
+| Who schedules | The **thread library** | The **kernel** |
+| What is scheduled | User-level threads onto an available **LWP** | Kernel threads onto a **physical CPU** |
+| Competition | Among threads of the **same process** | Among **all threads in the system** |
+| Models | Many-to-one and many-to-many | One-to-one |
+| Basis | Priority set by the programmer; the highest-priority runnable thread runs | The kernel's scheduling policy |
+| Used by | Systems with many-to-many libraries | Windows, Linux |
+
+**Pthread scheduling API**
+
+| Value | Meaning |
+|---|---|
+| `PTHREAD_SCOPE_PROCESS` | Schedule the thread using **PCS** |
+| `PTHREAD_SCOPE_SYSTEM` | Schedule the thread using **SCS** |
+
+```c
+pthread_attr_t attr;
+int scope;
+
+pthread_attr_init(&attr);
+pthread_attr_getscope(&attr, &scope);                  /* read the current scope */
+pthread_attr_setscope(&attr, PTHREAD_SCOPE_SYSTEM);    /* request SCS            */
+pthread_create(&tid, &attr, runner, NULL);
+```
+
+Linux and macOS allow only `PTHREAD_SCOPE_SYSTEM`.
+
+### 11.5 Algorithm evaluation
+
+How do we choose a CPU-scheduling algorithm for a particular system? First **define the criteria** (for example "maximize CPU utilization while keeping response time under 1 second"), then **evaluate** the candidate algorithms. There are four methods.
+
+**1. Deterministic modelling**
+
+A kind of **analytic evaluation**: take a **particular predetermined workload** and compute the performance of each algorithm for that workload.
+
+Example: five processes arrive at time 0 in the order P1 to P5 with CPU bursts **10, 29, 3, 7, 12 ms**.
+
+| Algorithm | Gantt chart | Waiting times (P1…P5) | Average waiting time |
+|---|---|---|---|
+| **FCFS** | P1(0–10) P2(10–39) P3(39–42) P4(42–49) P5(49–61) | 0, 10, 39, 42, 49 | 140 / 5 = **28 ms** |
+| **SJF** | P3(0–3) P4(3–10) P1(10–20) P5(20–32) P2(32–61) | 10, 32, 0, 3, 20 | 65 / 5 = **13 ms** |
+| **RR, q = 10** | P1(0–10) P2(10–20) P3(20–23) P4(23–30) P5(30–40) P2(40–50) P5(50–52) P2(52–61) | 0, 32, 20, 23, 40 | 115 / 5 = **23 ms** |
+
+For this workload SJF gives less than half the average waiting time of FCFS, and RR lies in between.
+
+- **Advantages:** simple and fast; gives **exact numbers** that are easy to compare.
+- **Disadvantages:** needs exact input, and the answer applies **only to that workload**.
+
+**2. Queueing models**
+
+- The computer system is described as a **network of servers**, each with a **queue** of waiting processes (the CPU with its ready queue, each I/O device with its device queue).
+- Bursts are not fixed; instead we know the **distribution** of CPU and I/O bursts and of **arrival times**. From the **arrival rate** and **service rate** we compute utilization, average queue length, and average waiting time. This is **queueing-network analysis**.
+
+> **Little's formula:** **`n = λ × W`**
+> `n` = average queue length, `λ` = average arrival rate, `W` = average waiting time in the queue.
+
+- It holds for **any scheduling algorithm and any arrival distribution** when the system is in a **steady state** (processes leave the queue at the same rate as they arrive).
+- Example: if 7 processes arrive every second (`λ = 7`) and there are normally 14 in the queue (`n = 14`), the average wait is `W = n / λ = 2 seconds`.
+- **Advantage:** useful for comparing algorithms over a whole class of workloads.
+- **Disadvantages:** only a limited class of algorithms and distributions can be handled; the mathematics needs **simplifying assumptions** that may not be realistic, so the results are approximate.
+
+**3. Simulations**
+
+- **Program a model** of the computer system. A variable represents the **clock**; as it advances, the simulator changes the system state and **gathers statistics**.
+- The input can be generated in three ways:
+  - a **random-number generator** following probability distributions;
+  - distributions defined mathematically or **measured empirically**;
+  - **trace tapes**: records of the actual sequence of events in a real system.
+- **Advantage:** more accurate than queueing models; trace tapes let different algorithms be compared on **exactly the same real input**.
+- **Disadvantages:** expensive in computer time; trace tapes need a lot of storage; designing, coding, and debugging the simulator is a major task.
+
+```mermaid
+flowchart LR
+    A["Actual process execution"] --> T["Trace tape"]
+    T --> S1["Simulation: FCFS"] --> R1["Performance statistics for FCFS"]
+    T --> S2["Simulation: SJF"] --> R2["Performance statistics for SJF"]
+    T --> S3["Simulation: RR (q = 14)"] --> R3["Performance statistics for RR"]
+```
+
+**4. Implementation**
+
+- **Code the algorithm, put it in the operating system, and measure** it under real operating conditions.
+- **Advantage:** the only **completely accurate** way to evaluate a scheduling algorithm.
+- **Disadvantages:** **high cost** (coding, modifying the OS, testing) and **high risk**; the **environment changes**, because users adapt their programs to the scheduler (for example by splitting long jobs so that they look short).
+- The most flexible schedulers can be **tuned** by system managers or through APIs that change priorities, but tuning for one situation may hurt performance in others.
+
+**Comparison of the four methods**
+
+| Method | Input | Accuracy | Cost |
+|---|---|---|---|
+| **Deterministic modelling** | One fixed workload | Exact, but only for that workload | Low |
+| **Queueing models** | Arrival and service distributions | Approximate | Low to medium |
+| **Simulations** | Random data or trace tapes | High | Medium to high |
+| **Implementation** | Real system and real users | Highest | Very high |
 
 ---
 
@@ -1110,6 +1360,8 @@ Load balancing works **against** processor affinity, because moving a process th
 - A **mechanism is required** to maintain data consistency by ensuring the **orderly execution of cooperating processes**.
 
 ### 12.2 Producer-consumer with a shared counter
+
+![Slide: producer-consumer buffer](assets/w6-1-p04-producer-consumer-buffer.png)
 
 There is a **buffer of n slots**, each slot holding one unit of data. Two processes operate on it: a **Producer** and a **Consumer**.
 
@@ -1183,6 +1435,8 @@ One item was produced and one consumed, so the correct value is **5**. The resul
 
 ### 13.2 General structure
 
+![Slide: general structure of process Pi](assets/w6-1-p09-critical-section-structure.png)
+
 ```c
 do {
     /* entry section     — ask permission to enter      */
@@ -1222,6 +1476,8 @@ There are two approaches to critical-section handling in an OS, depending on the
 
 ### 13.5 First attempt: the turn variable
 
+![Slide: lock states for P1 and P2](assets/w6-1-p10-lock-states.png)
+
 The lecture first shows a simple lock picture using a variable `S` (`S = 1` means free):
 
 | State | P1 | P2 | S |
@@ -1255,6 +1511,8 @@ This failure of **progress** is the reason for Peterson's solution.
 ---
 
 ## 14. Peterson's solution
+
+![Slide: structure of Pi and Pj in Peterson's solution](assets/w6-1-p16-peterson-structure.png)
 
 - A classic **software-based** solution to the critical-section problem; a good solution for **two processes**.
 - It **may not work correctly on modern computer architectures**, but it gives a good algorithmic description and shows the difficulty of meeting all three requirements.
@@ -1580,6 +1838,8 @@ These problems are used to **test newly proposed synchronization schemes**:
 
 ### 17.1 Bounded buffer
 
+![Slide: producer and consumer with semaphores](assets/w6-2-p14-bounded-buffer-semaphores.png)
+
 `n` buffers, each able to hold one item.
 
 | Semaphore | Initial value | Meaning |
@@ -1613,6 +1873,8 @@ do {
 > **Order matters:** always `wait(empty)`/`wait(full)` **before** `wait(mutex)`. If a producer took `mutex` first and then blocked on `empty`, the consumer could never get `mutex` to free a slot, giving a deadlock.
 
 ### 17.2 Readers-writers
+
+![Slide: writer and reader processes](assets/w6-2-p17-readers-writers-code.png)
 
 - A database (data set) is shared among several concurrent processes.
 - **Readers** only read the data set; they do **not** perform any updates.
@@ -1665,6 +1927,8 @@ do {
 Both may cause **starvation**, which leads to even more variations. On some systems the problem is solved by the kernel providing **reader-writer locks**. The solution above is the first variation.
 
 ### 17.3 Dining philosophers
+
+![Slide: dining-philosophers problem](assets/w6-3-p03-dining-philosophers.png)
 
 - Philosophers spend their lives **alternating between thinking and eating**.
 - They do not interact with their neighbours. Occasionally a philosopher tries to pick up **two chopsticks, one at a time**, to eat from the bowl.
@@ -1723,6 +1987,8 @@ Semaphores are easy to misuse. Incorrect use of the operations:
 
 ### 19.1 Concept and syntax
 
+![Slide: schematic view of a monitor](assets/ch6-p38-monitor-schematic.png)
+
 > A **monitor** is a **high-level abstraction** that provides a convenient and effective mechanism for process synchronization.
 
 - It is an **abstract data type**: its internal variables are accessible **only by code within its procedures**.
@@ -1755,6 +2021,8 @@ flowchart TB
 ```
 
 ### 19.2 Condition variables
+
+![Slide: monitor with condition variables](assets/ch6-p40-monitor-condition-variables.png)
 
 ```text
 condition x, y;
@@ -1968,6 +2236,8 @@ R.release();
 
 ### 20.2 Windows
 
+![Slide: mutex dispatcher object](assets/ch7-p17-windows-mutex-dispatcher.png)
+
 - Uses **interrupt masks** to protect access to global resources on **uniprocessor** systems.
 - Uses **spinlocks** on **multiprocessor** systems. A thread holding a spinlock will **never be preempted**.
 - Provides **dispatcher objects** in user land, which may act as **mutexes, semaphores, events, and timers**.
@@ -2134,6 +2404,10 @@ flowchart LR
     WS -->|"notify()"| ES
 ```
 
+![Slide: Java entry set](assets/ch7-p30-java-entry-set.png)
+
+![Slide: Java wait set](assets/ch7-p31-java-wait-set.png)
+
 **Java reentrant locks** — similar to mutex locks. The `finally` clause ensures the lock is released even if an exception occurs in the `try` block.
 
 ```java
@@ -2283,6 +2557,8 @@ Deadlocks involve non-preemptable resources.
 
 ### 23.2 When do deadlocks happen?
 
+![Slide: when do deadlocks happen](assets/w7-p09-when-deadlocks-happen.png)
+
 Suppose Process 1 holds resource A and requests resource B, while Process 2 holds B and requests A. **Both are blocked, and neither can proceed.**
 
 ```mermaid
@@ -2356,6 +2632,8 @@ Transactions 1 and 2 execute concurrently. Transaction 1 transfers $25 from acco
 
 **5. Bridge-crossing example**
 
+![Slide: bridge-crossing example](assets/w7-p07-bridge-crossing.png)
+
 ```text
   ════════╗                        ╔════════
   →  →    ╚════════════════════════╝    ←  ←
@@ -2410,6 +2688,8 @@ A resource-allocation graph (RAG) is a set of **vertices `V`** and a set of **ed
 
 ### 25.2 Example of a resource-allocation graph
 
+![Slide: resource-allocation graph example](assets/w7-p15-rag-example.png)
+
 - One instance of `R1`, two instances of `R2`, one instance of `R3`, three instances of `R4`.
 - `T1` holds one instance of `R2` and is waiting for an instance of `R1`.
 - `T2` holds one instance of `R1` and one instance of `R2`, and is waiting for an instance of `R3`.
@@ -2429,6 +2709,8 @@ flowchart LR
 **No cycle, so no deadlock.** `T3` can finish and release `R3`; then `T2` can finish; then `T1`.
 
 ### 25.3 Resource-allocation graph with a deadlock
+
+![Slide: resource-allocation graph with a deadlock](assets/w7-p16-rag-deadlock.png)
 
 Add one edge to the graph above: **`T3` requests `R2`**.
 
@@ -2451,6 +2733,8 @@ Two cycles now exist:
 Both instances of `R2` are held by `T1` and `T2`, which are inside the cycles. **`T1`, `T2`, and `T3` are deadlocked.**
 
 ### 25.4 Graph with a cycle but no deadlock
+
+![Slide: graph with a cycle but no deadlock](assets/w7-p17-rag-cycle-no-deadlock.png)
 
 ```mermaid
 flowchart LR
@@ -2523,6 +2807,8 @@ Guarantee that **whenever a process requests a resource, it does not hold any ot
 - The process is **restarted only when it can regain its old resources** as well as the new ones it is requesting.
 
 ### 27.4 Circular wait
+
+![Slide: attacking circular wait](assets/w7-p22-attacking-circular-wait.png)
 
 **Impose a total ordering of all resource types, and require that each process requests resources in an increasing order of enumeration.**
 
@@ -2603,6 +2889,8 @@ Such a sequence is called a **safe sequence**.
 Deadlock states are a subset of unsafe states. Safe and unsafe do not overlap.
 ```
 
+![Slide: safe, unsafe, and deadlock states](assets/w7-p26-safe-unsafe-deadlock.png)
+
 **Which algorithm?**
 
 | Situation | Algorithm |
@@ -2611,6 +2899,10 @@ Deadlock states are a subset of unsafe states. Safe and unsafe do not overlap.
 | **Multiple instances** of a resource type | **Banker's algorithm** |
 
 ### 28.3 Resource-allocation-graph algorithm
+
+![Slide: resource-allocation graph with claim edges](assets/w7-p29-rag-claim-edges.png)
+
+![Slide: unsafe state in a resource-allocation graph](assets/w7-p30-rag-unsafe.png)
 
 Three kinds of edge:
 
@@ -2797,6 +3089,14 @@ Safe sequence `<P1, P3, P4, P0, P2>`. **The request is granted immediately.**
 
 ### 29.2 Example 2 — determination of a safe state (4 processes, 3 resources)
 
+![Slide: (a) initial state](assets/w7-p42-safe-state-a.png)
+
+![Slide: (b) P2 runs to completion](assets/w7-p43-safe-state-b.png)
+
+![Slide: (c) P1 runs to completion](assets/w7-p44-safe-state-c.png)
+
+![Slide: (d) P3 runs to completion](assets/w7-p45-safe-state-d.png)
+
 This example uses Stallings' notation: **Claim matrix C** (= Max), **Allocation matrix A**, **C − A** (= Need), **Resource vector R** (total), **Available vector V**.
 
 **(a) Initial state** — `R = (9, 3, 6)`, `V = (0, 1, 1)`
@@ -2822,6 +3122,8 @@ Initially only `P2` can run: `P1` needs 2 units of R1, `P3` needs 1 unit of R1, 
 **The state is safe. Safe sequence: `<P2, P1, P3, P4>`.**
 
 ### 29.3 Example 3 — determination of an unsafe state
+
+![Slide: determination of an unsafe state](assets/w7-p46-unsafe-state.png)
 
 **(a) Initial state** — `R = (9, 3, 6)`, `V = (1, 1, 2)`
 
@@ -2852,6 +3154,8 @@ Initially only `P2` can run: `P1` needs 2 units of R1, `P3` needs 1 unit of R1, 
 > **Important:** unsafe does **not** mean deadlocked. If `P1` were to release its R1 and R3 before asking for more, the system could return to a safe state. Unsafe only means deadlock has become **possible**.
 
 ### 29.4 Example 4 — practice problem from the slides (3 processes, 3 resources)
+
+![Slide: Banker's algorithm practice problem](assets/w7-p47-bankers-practice.png)
 
 A computer system uses the Banker's algorithm. Its current state:
 
@@ -2907,6 +3211,8 @@ If the system uses neither prevention nor avoidance, it must:
 3. apply a **recovery scheme**.
 
 ### 30.1 Single instance of each resource type: wait-for graph
+
+![Slide: resource-allocation graph and wait-for graph](assets/w7-p50-wait-for-graph.png)
 
 - Maintain a **wait-for graph**.
   - The **nodes are processes**.
@@ -3008,6 +3314,8 @@ State of the system?
 
 ### 30.4 Practice question from the slides (4 processes, 5 resources)
 
+![Slide: deadlock-detection question](assets/w7-p57-detection-practice.png)
+
 **Request matrix Q** and **Allocation matrix A**:
 
 | Process | Request Q (R1 R2 R3 R4 R5) | Allocation A (R1 R2 R3 R4 R5) |
@@ -3079,6 +3387,8 @@ Take resources away from some processes and give them to others until the deadlo
 
 ### 32.1 Summary table from the slides (advantages and disadvantages)
 
+![Slide: advantages and disadvantages](assets/w7-p60-advantages-disadvantages.png)
+
 | Approach | Resource-allocation policy | Different schemes | Major advantages | Major disadvantages |
 |---|---|---|---|---|
 | **Prevention** | Conservative; undercommits resources | **Requesting all resources at once** | Works well for processes that perform a single burst of activity; no preemption necessary | Inefficient; delays process initiation; future resource requirements must be known by processes |
@@ -3140,6 +3450,15 @@ Take resources away from some processes and give them to others until the deadlo
 | `clone()` | Linux system call that creates a task; flags control what is shared |
 | SMP | Each processor is self-scheduling |
 | Processor affinity | Tendency of a process to stay on the same processor |
+| MLFQ | Multilevel feedback queue: processes move between queues based on CPU-burst behaviour |
+| Aging | Moving a long-waiting process to a higher-priority queue to prevent starvation |
+| Load balancing | Keeping the workload evenly distributed across processors |
+| Memory stall | Time a processor waits for data to become available from memory |
+| PCS | Process-contention scope: the thread library schedules user threads onto LWPs |
+| SCS | System-contention scope: the kernel schedules kernel threads onto CPUs |
+| Deterministic modelling | Evaluating algorithms on one predetermined workload |
+| Little's formula | n = λ × W (average queue length = arrival rate × average waiting time) |
+| Trace tape | Recorded sequence of real system events used to drive a simulation |
 | Race condition | Outcome depends on the order in which concurrent accesses happen |
 | Critical section | Code segment that accesses shared data |
 | Mutual exclusion | Only one process in its critical section at a time |
@@ -3193,6 +3512,10 @@ Take resources away from some processes and give them to others until the deadlo
 | AMP vs SMP | One master schedules vs every processor schedules itself |
 | Soft vs hard affinity | Tries to stay vs guaranteed to stay |
 | Push vs pull migration | Overloaded CPU pushes tasks vs idle CPU pulls tasks |
+| MLQ vs MLFQ | Permanent queue assignment vs movement between queues |
+| PCS vs SCS | Competition within one process vs competition among all threads in the system |
+| Coarse-grained vs fine-grained multithreading | Switch on a long stall vs switch at instruction-cycle boundaries |
+| Deterministic modelling vs simulation | One fixed workload, exact vs modelled system driven by random or trace data |
 | Progress vs bounded waiting | Someone gets in vs **I** get in within a bound |
 | `turn` algorithm vs Peterson | Strict alternation (no progress) vs `turn` + `flag` (all three hold) |
 | TestAndSet vs compare_and_swap | Always sets TRUE vs sets only if value equals expected |
@@ -3246,6 +3569,9 @@ Take resources away from some processes and give them to others until the deadlo
 16. RAG with claim edges (avoidance) and the unsafe case.
 17. Resource-allocation graph and its wait-for graph.
 18. Resource ordering with all arrows pointing up.
+19. MLFQ flow: Q0 → Q1 → Q2 with demotion and aging.
+20. AMP vs SMP organization.
+21. Trace-tape-driven simulation of scheduling algorithms.
 
 ---
 
@@ -3325,6 +3651,16 @@ Take resources away from some processes and give them to others until the deadlo
 70. What is the complexity of the detection algorithm?
 71. List the two ways of recovering from deadlock.
 72. What are the three issues in resource preemption?
+73. Define multilevel feedback queue scheduling.
+74. List the five parameters that define an MLFQ scheduler.
+75. What is aging?
+76. Differentiate push migration and pull migration.
+77. What is a memory stall?
+78. Differentiate PCS and SCS.
+79. What do `PTHREAD_SCOPE_PROCESS` and `PTHREAD_SCOPE_SYSTEM` mean?
+80. Name the four algorithm-evaluation methods.
+81. State Little's formula.
+82. What is a trace tape?
 
 ### 34.2 Short-answer questions (3–5 marks)
 
@@ -3389,6 +3725,14 @@ Take resources away from some processes and give them to others until the deadlo
 59. When should the detection algorithm be invoked?
 60. Explain recovery from deadlock by process termination and by resource preemption.
 61. Compare deadlock prevention, avoidance, and detection.
+62. Explain multilevel feedback queue scheduling with the three-queue example.
+63. Compare multilevel queue and multilevel feedback queue scheduling.
+64. Compare asymmetric and symmetric multiprocessing.
+65. Explain multicore processors, memory stall, and coarse-grained vs fine-grained multithreading.
+66. Explain thread scheduling: PCS, SCS, and the Pthread scheduling API.
+67. Explain deterministic modelling with an example.
+68. Explain queueing models and Little's formula.
+69. Explain simulations and implementation as evaluation methods.
 
 ### 34.3 Long-answer questions (8–10 marks)
 
@@ -3410,6 +3754,8 @@ Take resources away from some processes and give them to others until the deadlo
 16. Explain deadlock avoidance: safe state, the RAG algorithm, and the Banker's algorithm with an example.
 17. Explain deadlock detection for single and multiple instances, with an example, and recovery from deadlock.
 18. Compare the three approaches to deadlock with their advantages and disadvantages.
+19. Explain multilevel feedback queue scheduling: the five parameters, the three-queue example with a trace, aging, and a comparison with the multilevel queue.
+20. Compare the four algorithm-evaluation methods: deterministic modelling, queueing models, simulations, and implementation.
 
 ### 34.4 Code and trace questions
 
@@ -3495,6 +3841,9 @@ Take resources away from some processes and give them to others until the deadlo
 8. **Detection practice question.** Solve section 30.4. *(Ans: P1 and P2 are deadlocked.)*
 9. **Minimum resources.** Three processes each need at most 2 instances of a resource. What is the minimum number of instances that guarantees no deadlock? *(Ans: 3 × (2 − 1) + 1 = 4.)*
 10. **RAG reading.** Draw the RAG of section 25.3, list the cycles, and state which processes are deadlocked.
+11. **MLFQ trace.** With Q0 (RR, 8 ms), Q1 (RR, 16 ms), Q2 (FCFS), trace single processes with bursts 5, 20, and 40 ms. *(Ans: 5 → finishes in Q0; 20 → 8 in Q0 + 12 in Q1; 40 → 8 in Q0 + 16 in Q1 + 16 in Q2.)*
+12. **Deterministic modelling.** Bursts 10, 29, 3, 7, 12 ms, all arriving at time 0. Find the average waiting time under FCFS, SJF, and RR (q = 10). *(Ans: 28, 13, 23 ms.)*
+13. **Little's formula.** On average 7 processes arrive per second and 14 are in the queue. Find the average waiting time. *(Ans: W = n / λ = 2 s.)*
 
 ---
 
@@ -3562,7 +3911,10 @@ For a 5-mark answer: give a precise definition, one labelled diagram or code fra
 - [ ] I can explain thread pools, fork-join, OpenMP, GCD, and TBB.
 - [ ] I can explain `fork`/`exec` semantics, signal delivery, cancellation, TLS, thread safety, and scheduler activations.
 - [ ] I can describe ETHREAD/KTHREAD/TEB and the Linux `clone()` flags.
-- [ ] I can explain AMP vs SMP, processor affinity, and load balancing.
+- [ ] I can explain MLFQ with its five parameters, the three-queue example, and aging.
+- [ ] I can explain AMP vs SMP, processor affinity, load balancing, and multicore scheduling.
+- [ ] I can distinguish PCS and SCS thread scheduling.
+- [ ] I can compare the four algorithm-evaluation methods and use Little's formula.
 - [ ] I can show the race condition on `counter` step by step.
 - [ ] I can state the three critical-section requirements and explain why the `turn` algorithm fails.
 - [ ] I can write and prove Peterson's solution.
