@@ -1,7 +1,7 @@
 # Operating Systems — T2 Complete Exam-Ready Notes
 
 > **Level:** Intermediate | **Coverage:** Threads + Multilevel Feedback Queue, Multiprocessor and Thread Scheduling, Algorithm Evaluation + Process Synchronization + Deadlocks
-> **Built from:** `DOC-20260825-WA0000.pdf` (Threads lecture — sections 2 to 10 follow it exactly; `ch4.ppt` is used only to explain its points), `Week 4.pptx` (CPU Scheduling: multilevel queues, multiple-processor and real-time scheduling, algorithm evaluation), `ch6.pdf` (Process Synchronization), `Week 6_1 / 6_2 / 6_3.pptx` (Critical section, Semaphores, Monitors), `ch7.ppt` (Synchronization Examples), `ch8.ppt` (Deadlocks), `Week7_Deadlock.pptx` (Deadlock lecture with solved problems), `ch3.ppt` (Processes: background chapter, in Appendix A).
+> **Built from:** `DOC-20260825-WA0000.pdf` (Threads lecture — sections 2 to 10 follow it exactly; `ch4.ppt` is used only to explain its points), `Week 4.pptx` (CPU Scheduling: multilevel queues, multiple-processor and real-time scheduling, algorithm evaluation), `ch6.pdf` (Process Synchronization) and `ch7.ppt` (Synchronization Examples) — Part 2 sticks to these two only, `ch8.ppt` (Deadlocks), `Week7_Deadlock.pptx` (Deadlock lecture with solved problems), `ch3.ppt` (Processes: background chapter, in Appendix A).
 > **Exam use:** Definitions, diagrams, comparisons, algorithms, code interpretation, Banker's and detection numericals, viva points, and practice questions.
 
 **Syllabus covered**
@@ -41,12 +41,12 @@
 
 12. [Background and the race condition](#12-background-and-the-race-condition)
 13. [The critical-section problem](#13-the-critical-section-problem)
-    - 13.1 Definition · 13.2 General structure · 13.3 Three requirements · 13.4 Preemptive vs non-preemptive kernels · 13.5 First attempt: the turn variable
+    - 13.1 Definition · 13.2 General structure · 13.3 Three requirements
 14. [Peterson's solution](#14-petersons-solution)
 15. [Synchronization hardware](#15-synchronization-hardware)
-    - 15.1 Disabling interrupts · 15.2 Locks · 15.3 TestAndSet · 15.4 Swap · 15.5 compare_and_swap · 15.6 Bounded-waiting mutual exclusion
+    - 15.1 Disabling interrupts · 15.2 Locks · 15.3 TestAndSet · 15.4 Swap · 15.5 Bounded-waiting mutual exclusion with TestAndSet
 16. [Semaphores](#16-semaphores)
-    - 16.1 Definition · 16.2 Counting and binary semaphores · 16.3 Usage · 16.4 Busy waiting · 16.5 Implementation without busy waiting · 16.6 Deadlock, starvation, priority inversion
+    - 16.1 Definition · 16.2 Semaphore as a general synchronization tool · 16.3 Semaphore implementation (busy waiting) · 16.4 Implementation with no busy waiting · 16.5 Deadlock, starvation, priority inversion
 17. [Classical problems of synchronization](#17-classical-problems-of-synchronization)
     - 17.1 Bounded buffer · 17.2 Readers-writers · 17.3 Dining philosophers
 18. [Problems with semaphores](#18-problems-with-semaphores)
@@ -105,7 +105,7 @@ After studying these notes, you should be able to:
 - compare the algorithm-evaluation methods and apply Little's formula;
 - trace preemptive priority scheduling for processes with CPU and I/O bursts;
 - define a race condition and the critical-section problem with its three requirements;
-- trace Peterson's solution and the hardware solutions (TestAndSet, Swap, compare_and_swap);
+- trace Peterson's solution and the hardware solutions (TestAndSet, Swap, bounded-waiting TestAndSet);
 - define semaphores, implement them with and without busy waiting, and use them for the classical problems;
 - explain monitors, condition variables, and the monitor solution to dining philosophers;
 - define deadlock, state the four necessary conditions, and analyse a resource-allocation graph;
@@ -1137,24 +1137,12 @@ flowchart LR
 
 ### 12.1 Why synchronization is needed
 
-- Processes can execute **concurrently**.
-- A process may be **interrupted at any moment**, even when it has only partly completed its work.
 - **Concurrent access to shared data may result in data inconsistency.**
-- A **mechanism is required** to maintain data consistency by ensuring the **orderly execution of cooperating processes**.
+- Maintaining data consistency requires **mechanisms to ensure the orderly execution of cooperating processes**.
 
 ### 12.2 Producer-consumer with a shared counter
 
-![Slide: producer-consumer buffer](assets/w6-1-p04-producer-consumer-buffer.png)
-
-There is a **buffer of n slots**, each slot holding one unit of data. Two processes operate on it: a **Producer** and a **Consumer**.
-
-- The producer tries to insert data into an **empty** slot.
-- The consumer tries to remove data from a **filled** slot.
-- The producer must **not insert when the buffer is full**.
-- The consumer must **not remove when the buffer is empty**.
-- The producer and consumer should **not insert and remove simultaneously**.
-
-To use **all** the buffer slots, keep an integer `counter` that tracks the number of full buffers. It starts at 0, is **incremented by the producer** and **decremented by the consumer**.
+Suppose we want a solution to the producer-consumer problem that fills **all** the buffers. Keep an integer `counter` that tracks the number of full buffers. It starts at 0, is **incremented by the producer** and **decremented by the consumer**.
 
 ```c
 /* Producer */
@@ -1218,7 +1206,7 @@ One item was produced and one consumed, so the correct value is **5**. The resul
 
 ### 13.2 General structure
 
-![Slide: general structure of process Pi](assets/w6-1-p09-critical-section-structure.png)
+![Slide: general structure of process Pi](assets/ch6-p09-critical-section-structure.png)
 
 ```c
 do {
@@ -1241,65 +1229,18 @@ do {
 A solution to the critical-section problem must satisfy all three:
 
 1. **Mutual exclusion** — if process `Pi` is executing in its critical section, then **no other process** can be executing in its critical section.
-2. **Progress** — if no process is executing in its critical section and some processes wish to enter, then only the processes **not in their remainder sections** can take part in deciding which enters next, and this selection **cannot be postponed indefinitely**.
+2. **Progress** — if no process is executing in its critical section and some processes wish to enter, then the selection of the process that will enter its critical section next **cannot be postponed indefinitely**.
 3. **Bounded waiting** — there is a **bound (limit)** on the number of times other processes may enter their critical sections **after** a process has made a request to enter and **before** that request is granted.
 
 Assumptions: each process executes at a **nonzero speed**; **no assumption** is made about the relative speed of the `n` processes.
 
 > **Memory aid:** **M-P-B** — Mutual exclusion, Progress, Bounded waiting.
 
-### 13.4 Preemptive vs non-preemptive kernels
-
-There are two approaches to critical-section handling in an OS, depending on the kernel:
-
-| Kernel type | Behaviour | Race conditions on kernel data |
-|---|---|---|
-| **Preemptive** | Allows a process to be preempted while running in kernel mode | Possible; must be designed carefully |
-| **Non-preemptive** | A process runs until it exits kernel mode, blocks, or voluntarily yields the CPU | Essentially free of them, since only one process is active in the kernel at a time |
-
-### 13.5 First attempt: the turn variable
-
-![Slide: lock states for P1 and P2](assets/w6-1-p10-lock-states.png)
-
-The lecture first shows a simple lock picture using a variable `S` (`S = 1` means free):
-
-| State | P1 | P2 | S |
-|---|---|---|---|
-| 1 | Executing in non-critical section | Executing in non-critical section | 1 |
-| 2 | **Enters** critical section, sets `S = 0` | Executing in non-critical section | 0 |
-| 3 | Executing in critical section | Wants to enter but **cannot**, since `S = 0` | 0 |
-| 4 | Exits critical section, sets `S = 1` | Enters critical section as `S = 1`, sets `S = 0` | 1 → 0 |
-
-Then a first software algorithm that uses a shared variable `turn`:
-
-```c
-/* Algorithm for process Pi (the other process is Pj) */
-do {
-    while (turn == j)
-        ;                       /* wait while it is the other's turn */
-        critical section
-    turn = j;                   /* hand the turn to the other process */
-        remainder section
-} while (true);
-```
-
-| Requirement | Satisfied? | Why |
-|---|---|---|
-| Mutual exclusion | Yes | `turn` has only one value at a time |
-| Progress | **No** | The processes must **strictly alternate**. If it is `Pj`'s turn and `Pj` is in its remainder section and does not want to enter, `Pi` is stuck even though the critical section is free. |
-| Bounded waiting | Yes | The other process can enter at most once before you |
-
-This failure of **progress** is the reason for Peterson's solution.
-
 ---
 
 ## 14. Peterson's solution
 
-![Slide: structure of Pi and Pj in Peterson's solution](assets/w6-1-p16-peterson-structure.png)
-
-- A classic **software-based** solution to the critical-section problem; a good solution for **two processes**.
-- It **may not work correctly on modern computer architectures**, but it gives a good algorithmic description and shows the difficulty of meeting all three requirements.
-- It is restricted to **two processes** `Pi` and `Pj` that alternate between their critical and remainder sections.
+- A **two-process** solution (processes `Pi` and `Pj`).
 - **Assumption:** the `load` and `store` machine-language instructions are **atomic** (cannot be interrupted).
 
 The two processes **share two variables**:
@@ -1324,7 +1265,7 @@ do {                                     do {
 
 **How to read it:** "I am ready (`flag[i] = true`), but you go first if you want (`turn = j`). I wait only while you are ready **and** it is your turn."
 
-**Proof that the three requirements hold**
+**The slide states it is provable that all three requirements hold. Why:**
 
 1. **Mutual exclusion is preserved.** `Pi` enters only if `flag[j] == false` or `turn == i`. If both were inside together, both flags would be true, so `turn` would have to be both `i` and `j` at once, which is impossible.
 2. **Progress is satisfied.** `Pi` is stuck only while `flag[j] == true && turn == j`. If `Pj` is not interested, `flag[j]` is false and `Pi` enters straight away.
@@ -1335,7 +1276,6 @@ do {                                     do {
 ## 15. Synchronization hardware
 
 - Many systems provide **hardware support** for implementing critical-section code.
-- All these solutions are based on the idea of **locking**: protecting critical regions with locks.
 
 ### 15.1 Disabling interrupts
 
@@ -1413,38 +1353,9 @@ do {
 } while (TRUE);
 ```
 
-### 15.5 compare_and_swap
+> The simple TestAndSet and Swap solutions give **mutual exclusion** and progress, but **not bounded waiting**: an unlucky process could lose the race every time.
 
-```c
-int compare_and_swap(int *value, int expected, int new_value) {
-    int temp = *value;
-    if (*value == expected)
-        *value = new_value;
-    return temp;
-}
-```
-
-Properties:
-
-1. It is executed **atomically**.
-2. It **returns the original value** of the parameter `value`.
-3. It sets `value` to `new_value` **only if** `*value == expected`.
-
-**Solution** — shared integer `lock` initialized to 0:
-
-```c
-do {
-    while (compare_and_swap(&lock, 0, 1) != 0)
-        ;                     /* do nothing */
-        /* critical section */
-    lock = 0;
-        /* remainder section */
-} while (true);
-```
-
-> The simple TestAndSet, Swap, and compare_and_swap solutions give **mutual exclusion** and progress, but **not bounded waiting**: an unlucky process could lose the race every time.
-
-### 15.6 Bounded-waiting mutual exclusion
+### 15.5 Bounded-waiting mutual exclusion with TestAndSet
 
 Shared data: `boolean waiting[n];` and `boolean lock;`, all initialized to `FALSE`.
 
@@ -1483,10 +1394,10 @@ do {
 
 ### 16.1 Definition
 
-> A **semaphore** is a robust synchronization tool that processes use to synchronize their activities. A semaphore `S` is an **integer variable** that can only be accessed through **two indivisible (atomic) operations**: `wait()` and `signal()`.
+> A **semaphore** is a synchronization tool that **does not require busy waiting**. A semaphore `S` is an **integer variable** that can only be accessed through **two indivisible (atomic) operations**: `wait()` and `signal()`.
 
 - Originally called **`P()`** (wait) and **`V()`** (signal).
-- Less complicated to use than the hardware instructions.
+- **Less complicated** than the hardware solutions.
 
 ```c
 wait(S) {
@@ -1500,7 +1411,7 @@ signal(S) {
 }
 ```
 
-### 16.2 Counting and binary semaphores
+### 16.2 Semaphore as a general synchronization tool
 
 | Type | Range | Use |
 |---|---|---|
@@ -1509,9 +1420,7 @@ signal(S) {
 
 A counting semaphore `S` can be implemented using binary semaphores.
 
-### 16.3 Usage
-
-**1. Mutual exclusion**
+A binary semaphore **provides mutual exclusion**:
 
 ```c
 Semaphore mutex;          /* initialized to 1 */
@@ -1523,17 +1432,7 @@ do {
 } while (TRUE);
 ```
 
-**2. Ordering two statements** — `P1` and `P2` require that `S1` happens before `S2`. Create a semaphore `synch` initialized to **0**:
-
-```c
-/* P1 */                 /* P2 */
-S1;                      wait(synch);
-signal(synch);           S2;
-```
-
-`P2` cannot pass `wait(synch)` until `P1` has run `S1` and signalled.
-
-### 16.4 Busy waiting
+### 16.3 Semaphore implementation (busy waiting)
 
 - The implementation must guarantee that **no two processes execute `wait()` and `signal()` on the same semaphore at the same time**.
 - So the implementation itself becomes a **critical-section problem**, with the `wait` and `signal` code placed in the critical section.
@@ -1542,15 +1441,11 @@ signal(synch);           S2;
 
 > **The busy-waiting problem:** the main disadvantage of the semaphore definition above is that it requires **busy waiting**. While one process is in its critical section, any other process that tries to enter must **loop continuously in the entry code**, wasting CPU cycles. A semaphore of this kind is called a **spinlock**.
 
-### 16.5 Implementation without busy waiting
+### 16.4 Implementation with no busy waiting
 
-**Idea:** modify the definitions of `wait()` and `signal()`.
-
-- When a process executes `wait()` and finds the semaphore value is not positive, it must wait. Instead of busy waiting, the process **blocks itself**.
-- The **block** operation places the process into a **waiting queue associated with the semaphore** and switches its state to **waiting**. Control is transferred to the CPU scheduler, which selects another process.
-- A blocked process is restarted when some other process executes `signal()`. The **wakeup** operation changes it from the **waiting state to the ready state**.
-
-Each semaphore has an associated waiting queue; each entry has a `value` (integer) and a pointer to the next record in the list.
+- With each semaphore there is an associated **waiting queue**.
+- Each entry in a waiting queue has two data items: a **value** (integer) and a **pointer to the next record** in the list.
+- Instead of looping, a process that must wait **blocks itself**; it is woken up when another process executes `signal()`.
 
 ```c
 typedef struct {
@@ -1588,7 +1483,7 @@ signal(semaphore *S) {
 | Waiting process loops (wastes CPU) | Waiting process sleeps in a queue |
 | No context switch; good for very short waits on multiprocessors | Context switch needed; good for longer waits |
 
-### 16.6 Deadlock, starvation, priority inversion
+### 16.5 Deadlock, starvation, priority inversion
 
 **Deadlock** — two or more processes are waiting indefinitely for an event that can be caused only by one of the waiting processes.
 
@@ -1605,9 +1500,9 @@ signal(Q);               signal(S);
 
 If `P0` runs `wait(S)` and then `P1` runs `wait(Q)`, `P0` waits for `Q` (held by `P1`) and `P1` waits for `S` (held by `P0`). Neither can continue.
 
-**Starvation** — **indefinite blocking**. A process may never be removed from the semaphore queue in which it is suspended (for example if the queue is served in LIFO order).
+**Starvation** — **indefinite blocking**. A process may never be removed from the semaphore queue in which it is suspended .
 
-**Priority inversion** — a scheduling problem in which a **lower-priority process holds a lock needed by a higher-priority process**. It is solved by the **priority-inheritance protocol**: the low-priority holder temporarily inherits the higher priority until it releases the lock.
+**Priority inversion** — a scheduling problem in which a **lower-priority process holds a lock needed by a higher-priority process**. It is solved via the **priority-inheritance protocol** (the low-priority holder temporarily inherits the higher priority until it releases the lock).
 
 ---
 
@@ -1620,8 +1515,6 @@ These problems are used to **test newly proposed synchronization schemes**:
 3. Dining-Philosophers Problem
 
 ### 17.1 Bounded buffer
-
-![Slide: producer and consumer with semaphores](assets/w6-2-p14-bounded-buffer-semaphores.png)
 
 `n` buffers, each able to hold one item.
 
@@ -1657,22 +1550,19 @@ do {
 
 ### 17.2 Readers-writers
 
-![Slide: writer and reader processes](assets/w6-2-p17-readers-writers-code.png)
-
-- A database (data set) is shared among several concurrent processes.
+- A data set is shared among a number of concurrent processes.
 - **Readers** only read the data set; they do **not** perform any updates.
 - **Writers** can both read and write.
-- If two readers access the data together, **no adverse effects** result.
-- If a writer and any other process (reader or writer) access it together, **chaos may ensue**.
-- **Requirement:** allow **multiple readers** at the same time, but only **one writer**, with **exclusive access**.
+- **Problem:** allow **multiple readers** to read at the same time, but only **one single writer** can access the shared data at a time.
+- Several variations of how readers and writers are treated — all involve priorities.
 
 Shared data:
 
 | Item | Initial value | Purpose |
 |---|---|---|
 | `mutex` (semaphore) | 1 | Mutual exclusion when `readcount` is updated, that is, when any reader enters or exits |
-| `wrt` / `rw_mutex` (semaphore) | 1 | Common to readers and writers; gives writers exclusive access |
-| `readcount` (integer) | 0 | Number of processes currently reading |
+| `wrt` (ch6) / `rw_mutex` (ch7) (semaphore) | 1 | Common to readers and writers; gives writers exclusive access |
+| `readcount` (ch6) / `read_count` (ch7) (integer) | 0 | Number of processes currently reading |
 
 ```c
 /* Writer */
@@ -1711,7 +1601,7 @@ Both may cause **starvation**, which leads to even more variations. On some syst
 
 ### 17.3 Dining philosophers
 
-![Slide: dining-philosophers problem](assets/w6-3-p03-dining-philosophers.png)
+![Slide: dining-philosophers problem](assets/ch6-p34-dining-philosophers.png)
 
 - Philosophers spend their lives **alternating between thinking and eating**.
 - They do not interact with their neighbours. Occasionally a philosopher tries to pick up **two chopsticks, one at a time**, to eat from the bowl.
@@ -1741,12 +1631,6 @@ do {
 **What is the problem with this algorithm?**
 
 It guarantees that **no two neighbours eat simultaneously**, but it can create a **deadlock**. Suppose all five philosophers become hungry at the same time and **each grabs the left chopstick**. All elements of `chopstick` are now 0. When each philosopher tries to grab the right chopstick, he is **delayed forever**.
-
-**Possible remedies to avoid deadlock**
-
-1. Allow **at most four** philosophers to sit at the table at the same time.
-2. Allow a philosopher to pick up chopsticks **only if both are available** (he must pick them up inside a critical section).
-3. Use an **asymmetric** solution: an **odd** philosopher picks up the left chopstick first and then the right; an **even** philosopher picks up the right first and then the left.
 
 ---
 
@@ -2299,7 +2183,7 @@ void update(int value) {
 - Variables are treated as **immutable** and cannot change once assigned a value.
 - With no mutable shared state there are no data races. There is increasing interest in functional languages such as **Erlang** and **Scala** for this reason.
 
-> **Atomic transactions** appear in the chapter outline of `ch6.pdf` and in the Week 6_3 overview, but no slide in the supplied decks develops them. Know only the idea: a transaction is a set of operations that must be performed as one atomic unit (all or nothing).
+> **Atomic transactions** appear in the chapter outline and objectives of `ch6.pdf`, but no slide develops them. Know only the idea: a transaction is a set of operations that must be performed as one atomic unit (all or nothing).
 
 ---
 
@@ -3770,7 +3654,6 @@ The slides' "Date" server listens on a port with a `ServerSocket`, blocks in `ac
 | Peterson's solution | Two-process software solution using `turn` and `flag[2]` |
 | Atomic | Non-interruptible |
 | TestAndSet | Atomically returns the old value and sets the target to TRUE |
-| compare_and_swap | Atomically sets value to new_value only if it equals expected; returns old value |
 | Semaphore | Integer variable accessed only through atomic `wait()` and `signal()` |
 | Binary semaphore | Semaphore with values 0 and 1; same as a mutex lock |
 | Counting semaphore | Semaphore whose value ranges over an unrestricted domain |
@@ -3817,8 +3700,6 @@ The slides' "Date" server listens on a port with a `ServerSocket`, blocks in `ac
 | Coarse-grained vs fine-grained multithreading | Switch on a long stall vs switch at instruction-cycle boundaries |
 | Deterministic modelling vs simulation | One fixed workload, exact vs modelled system driven by random or trace data |
 | Progress vs bounded waiting | Someone gets in vs **I** get in within a bound |
-| `turn` algorithm vs Peterson | Strict alternation (no progress) vs `turn` + `flag` (all three hold) |
-| TestAndSet vs compare_and_swap | Always sets TRUE vs sets only if value equals expected |
 | Binary vs counting semaphore | 0/1 mutex vs counts multiple instances |
 | Busy-wait vs blocking semaphore | Spins, value ≥ 0 vs sleeps in a queue, value may be negative |
 | Semaphore `signal` vs condition `signal` | Always increments (remembered) vs no effect if nobody waits (lost) |
@@ -3840,13 +3721,11 @@ The slides' "Date" server listens on a port with a `ServerSocket`, blocks in `ac
 | Problem | Variables and initial values |
 |---|---|
 | Mutual exclusion | `mutex = 1` |
-| Ordering S1 before S2 | `synch = 0` |
 | Bounded buffer | `mutex = 1`, `full = 0`, `empty = n` |
 | Readers-writers | `mutex = 1`, `wrt = 1`, `readcount = 0` |
 | Dining philosophers | `chopstick[5]`, each `= 1` |
 | Peterson | `flag[2] = {false, false}`, `turn` = either |
 | TestAndSet / Swap lock | `lock = FALSE` |
-| compare_and_swap lock | `lock = 0` |
 | Monitor via semaphores | `mutex = 1`, `next = 0`, `next_count = 0`, `x_sem = 0`, `x_count = 0` |
 
 ### 33.4 High-yield diagrams to practise
@@ -3974,49 +3853,47 @@ The slides' "Date" server listens on a port with a `ServerSocket`, blocks in `ac
 19. Show how `counter++` and `counter--` cause a race condition.
 20. Explain the critical-section problem and its general structure.
 21. Explain the three requirements for a critical-section solution.
-22. Why does the simple `turn` algorithm fail?
-23. Explain Peterson's solution and prove that it is correct.
-24. Explain how `TestAndSet()` provides mutual exclusion.
-25. Explain `compare_and_swap()` and its use as a lock.
-26. Write the bounded-waiting mutual-exclusion algorithm using `TestAndSet()`.
-27. Define a semaphore and show two uses of it.
-28. Explain the busy-waiting problem and the semaphore implementation that avoids it.
-29. Explain deadlock, starvation, and priority inversion with semaphores.
-30. Give the semaphore solution to the bounded-buffer problem.
-31. Give the semaphore solution to the readers-writers problem and state its variations.
-32. State the dining-philosophers problem, its deadlock, and three remedies.
-33. What are the problems with semaphores?
-34. Explain monitors and condition variables with a schematic diagram.
-35. Distinguish signal-and-wait from signal-and-continue.
-36. Explain how a monitor is implemented using semaphores.
-37. Write a monitor to allocate a single resource using conditional wait.
-38. Explain synchronization in Solaris.
-39. Explain synchronization in Windows and Linux.
-40. Explain POSIX mutex locks, semaphores, and condition variables.
-41. Explain Java monitors, the entry set, and the wait set.
-42. Write short notes on transactional memory and functional programming languages.
-43. Explain the system model for deadlocks.
-44. Explain the four necessary conditions for deadlock.
-45. Explain the resource-allocation graph and the basic facts about cycles.
-46. Explain how each of the four conditions can be prevented.
-47. How does resource ordering prevent circular wait?
-48. Define safe state, unsafe state, and safe sequence.
-49. Explain the resource-allocation-graph algorithm for avoidance.
-50. Write the safety algorithm.
-51. Write the resource-request algorithm.
-52. Explain the wait-for graph method of detection.
-53. Write the deadlock-detection algorithm for multiple instances.
-54. When should the detection algorithm be invoked?
-55. Explain recovery from deadlock by process termination and by resource preemption.
-56. Compare deadlock prevention, avoidance, and detection.
-57. Explain multilevel feedback queue scheduling with the three-queue example.
-58. Compare multilevel queue and multilevel feedback queue scheduling.
-59. Compare asymmetric and symmetric multiprocessing.
-60. Explain multicore processors, memory stall, and coarse-grained vs fine-grained multithreading.
-61. Explain thread scheduling: PCS, SCS, and the Pthread scheduling API.
-62. Explain deterministic modelling with an example.
-63. Explain queueing models and Little's formula.
-64. Explain simulations and implementation as evaluation methods.
+22. Explain Peterson's solution and prove that it is correct.
+23. Explain how `TestAndSet()` provides mutual exclusion.
+24. Write the bounded-waiting mutual-exclusion algorithm using `TestAndSet()`.
+25. Define a semaphore. Distinguish counting and binary semaphores and show how a semaphore gives mutual exclusion.
+26. Explain the busy-waiting problem and the semaphore implementation that avoids it.
+27. Explain deadlock, starvation, and priority inversion with semaphores.
+28. Give the semaphore solution to the bounded-buffer problem.
+29. Give the semaphore solution to the readers-writers problem and state its variations.
+30. State the dining-philosophers problem and explain why the semaphore solution can deadlock.
+31. What are the problems with semaphores?
+32. Explain monitors and condition variables with a schematic diagram.
+33. Distinguish signal-and-wait from signal-and-continue.
+34. Explain how a monitor is implemented using semaphores.
+35. Write a monitor to allocate a single resource using conditional wait.
+36. Explain synchronization in Solaris.
+37. Explain synchronization in Windows and Linux.
+38. Explain POSIX mutex locks, semaphores, and condition variables.
+39. Explain Java monitors, the entry set, and the wait set.
+40. Write short notes on transactional memory and functional programming languages.
+41. Explain the system model for deadlocks.
+42. Explain the four necessary conditions for deadlock.
+43. Explain the resource-allocation graph and the basic facts about cycles.
+44. Explain how each of the four conditions can be prevented.
+45. How does resource ordering prevent circular wait?
+46. Define safe state, unsafe state, and safe sequence.
+47. Explain the resource-allocation-graph algorithm for avoidance.
+48. Write the safety algorithm.
+49. Write the resource-request algorithm.
+50. Explain the wait-for graph method of detection.
+51. Write the deadlock-detection algorithm for multiple instances.
+52. When should the detection algorithm be invoked?
+53. Explain recovery from deadlock by process termination and by resource preemption.
+54. Compare deadlock prevention, avoidance, and detection.
+55. Explain multilevel feedback queue scheduling with the three-queue example.
+56. Compare multilevel queue and multilevel feedback queue scheduling.
+57. Compare asymmetric and symmetric multiprocessing.
+58. Explain multicore processors, memory stall, and coarse-grained vs fine-grained multithreading.
+59. Explain thread scheduling: PCS, SCS, and the Pthread scheduling API.
+60. Explain deterministic modelling with an example.
+61. Explain queueing models and Little's formula.
+62. Explain simulations and implementation as evaluation methods.
 
 ### 34.3 Long-answer questions (8–10 marks)
 
@@ -4028,8 +3905,8 @@ The slides' "Date" server listens on a port with a `ServerSocket`, blocks in `ac
 6. Describe how Windows XP and Linux represent threads.
 7. Explain multiple-processor scheduling: AMP, SMP, affinity, load balancing, and thread scheduling scopes.
 8. Explain the critical-section problem, its requirements, and Peterson's solution with proof.
-9. Explain synchronization hardware: disabling interrupts, TestAndSet, Swap, compare_and_swap, and the bounded-waiting algorithm.
-10. Explain semaphores: definition, types, usage, both implementations, and their problems.
+9. Explain synchronization hardware: disabling interrupts, locks, TestAndSet, Swap, and the bounded-waiting algorithm.
+10. Explain semaphores: definition, counting vs binary, both implementations, and their problems.
 11. Explain the three classical synchronization problems with semaphore solutions.
 12. Explain monitors: syntax, condition variables, the dining-philosophers solution, and implementation using semaphores.
 13. Describe synchronization in Solaris, Windows, Linux, POSIX, and Java.
@@ -4147,7 +4024,7 @@ Define the critical section and draw the entry/critical/exit/remainder structure
 
 ### 35.4 Model: Semaphores (8 marks)
 
-Definition with `wait`/`signal` code and the names P and V (2). Counting vs binary, and binary = mutex (1). Two usages: mutual exclusion with `mutex = 1` and ordering with `synch = 0` (1.5). The busy-waiting problem and the term spinlock (1). The blocking implementation with the `struct`, `block()`, and `wakeup()`, and the meaning of a negative value (1.5). Problems: deadlock with the `S`/`Q` example, starvation, priority inversion with priority inheritance (1).
+Definition with `wait`/`signal` code and the names P and V (2). Counting vs binary, and binary = mutex (1). Mutual exclusion with `mutex = 1` (1). The busy-waiting problem in the implementation (1.5). The blocking implementation with the `struct`, `block()`, and `wakeup()`, and the meaning of a negative value (1.5). Problems: deadlock with the `S`/`Q` example, starvation, priority inversion with priority inheritance (1).
 
 ### 35.5 Model: Readers-writers (5 marks)
 
@@ -4198,9 +4075,9 @@ For a 5-mark answer: give a precise definition, one labelled diagram or code fra
 - [ ] I can distinguish PCS and SCS thread scheduling.
 - [ ] I can compare the four algorithm-evaluation methods and use Little's formula.
 - [ ] I can show the race condition on `counter` step by step.
-- [ ] I can state the three critical-section requirements and explain why the `turn` algorithm fails.
+- [ ] I can state the three critical-section requirements.
 - [ ] I can write and prove Peterson's solution.
-- [ ] I can write `TestAndSet`, `Swap`, `compare_and_swap`, and the bounded-waiting algorithm.
+- [ ] I can write `TestAndSet`, `Swap`, and the bounded-waiting algorithm.
 - [ ] I can define semaphores and write both implementations.
 - [ ] I can write the semaphore solutions to bounded buffer, readers-writers, and dining philosophers.
 - [ ] I can explain monitors, condition variables, and the monitor solution to dining philosophers.
