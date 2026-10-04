@@ -1,7 +1,7 @@
 # Operating Systems — T2 Complete Exam-Ready Notes
 
-> **Level:** Intermediate | **Coverage:** Threads and Concurrency + Multilevel Feedback Queue, Multiprocessor and Thread Scheduling, Algorithm Evaluation + Process Synchronization + Deadlocks
-> **Built from:** `ch4.ppt` (Threads and Concurrency), `DOC-20260825-WA0000.pdf` (Threads lecture), `Week 4.pptx` (CPU Scheduling: multilevel queues, multiple-processor and real-time scheduling, algorithm evaluation), `ch6.pdf` (Process Synchronization), `Week 6_1 / 6_2 / 6_3.pptx` (Critical section, Semaphores, Monitors), `ch7.ppt` (Synchronization Examples), `ch8.ppt` (Deadlocks), `Week7_Deadlock.pptx` (Deadlock lecture with solved problems), `ch3.ppt` (Processes: background chapter, in Appendix A).
+> **Level:** Intermediate | **Coverage:** Threads + Multilevel Feedback Queue, Multiprocessor and Thread Scheduling, Algorithm Evaluation + Process Synchronization + Deadlocks
+> **Built from:** `DOC-20260825-WA0000.pdf` (Threads lecture — sections 2 to 10 follow it exactly; `ch4.ppt` is used only to explain its points), `Week 4.pptx` (CPU Scheduling: multilevel queues, multiple-processor and real-time scheduling, algorithm evaluation), `ch6.pdf` (Process Synchronization), `Week 6_1 / 6_2 / 6_3.pptx` (Critical section, Semaphores, Monitors), `ch7.ppt` (Synchronization Examples), `ch8.ppt` (Deadlocks), `Week7_Deadlock.pptx` (Deadlock lecture with solved problems), `ch3.ppt` (Processes: background chapter, in Appendix A).
 > **Exam use:** Definitions, diagrams, comparisons, algorithms, code interpretation, Banker's and detection numericals, viva points, and practice questions.
 
 **Syllabus covered**
@@ -15,26 +15,25 @@
 
 ## Contents
 
-### Part 1 — Threads, User and Kernel Threads, Multithreading Models, MLFQ, Multiprocessor and Thread Scheduling, Algorithm Evaluation
+### Part 1 — Threads, User and Kernel Threads, Multithreading Models, Thread Libraries, Threading Issues, MLFQ, Multiprocessor and Thread Scheduling, Algorithm Evaluation
 
 1. [Learning outcomes](#1-learning-outcomes)
 2. [Why threads: motivation](#2-why-threads-motivation)
-   - 2.1 The 4-CPU summation scenario · 2.2 Where threads are used · 2.3 Multithreaded server architecture
+   - 2.1 The 4-CPU summation scenario · 2.2 Better method: four processes · 2.3 Even better: four threads in one process
 3. [Thread concept](#3-thread-concept)
-   - 3.1 Definition and Thread Control Block · 3.2 Single-threaded vs multithreaded process · 3.3 Threads vs processes · 3.4 Merits of threads · 3.5 Thread scheduling and thread states
-4. [Benefits and multicore programming](#4-benefits-and-multicore-programming)
-   - 4.1 Four benefits · 4.2 Multicore challenges · 4.3 Concurrency vs parallelism · 4.4 Data vs task parallelism · 4.5 Amdahl's Law
-5. [User-level and kernel-level threads](#5-user-level-and-kernel-level-threads)
-   - 5.1 User threads · 5.2 Kernel threads · 5.3 ULT states vs process states · 5.4 Merits and demerits of ULT, jacketing · 5.5 Merits and demerits of KLT · 5.6 Comparison table
-6. [Multithreading models](#6-multithreading-models)
-   - 6.1 Many-to-One · 6.2 One-to-One · 6.3 Many-to-Many · 6.4 Two-level model · 6.5 Comparison
-7. [Thread libraries](#7-thread-libraries)
-   - 7.1 Overview · 7.2 Pthreads API and example · 7.3 Windows threads program · 7.4 Java threads · 7.5 Java Executor framework
-8. [Implicit threading](#8-implicit-threading)
-   - 8.1 Thread pools · 8.2 Fork-Join · 8.3 OpenMP · 8.4 Grand Central Dispatch · 8.5 Intel TBB
-9. [Threading issues](#9-threading-issues)
-   - 9.1 fork and exec semantics · 9.2 Signal handling · 9.3 Thread cancellation · 9.4 Thread-local storage and thread-specific data · 9.5 Thread safety · 9.6 Scheduler activations and LWP · 9.7 Pros and cons of multithreading
-10. [Operating-system examples: Windows and Linux threads](#10-operating-system-examples-windows-and-linux-threads)
+   - 3.1 Threads and the Thread Control Block · 3.2 Single-threaded and multithreaded processes · 3.3 Threads vs processes · 3.4 Merits of using threads · 3.5 Thread scheduling
+4. [User-level and kernel-level threads](#4-user-level-and-kernel-level-threads)
+   - 4.1 Types of threads · 4.2 Threads management · 4.3 ULT states vs process states · 4.4 Merits and demerits of ULT, jacketing · 4.5 Merits and demerits of KLT · 4.6 Comparison table
+5. [Multithreading models](#5-multithreading-models)
+   - 5.1 Many-to-One · 5.2 One-to-One · 5.3 Many-to-Many · 5.4 Comparison
+6. [Thread libraries](#6-thread-libraries)
+   - 6.1 Overview · 6.2 POSIX Pthreads · 6.3 The pthread library calls · 6.4 Lecture example: four-thread summation · 6.5 Terminating a thread
+7. [Thread cancellation](#7-thread-cancellation)
+   - 7.1 Cancellation states · 7.2 Cancellation types
+8. [Threading issues](#8-threading-issues)
+   - 8.1 fork(), exec(), exit() · 8.2 Signal handling · 8.3 Thread pools · 8.4 Thread safety · 8.5 How to ensure thread safety · 8.6 Thread-specific data
+9. [Threads: pros and cons](#9-threads-pros-and-cons)
+10. [Operating-system examples: Windows XP and Linux threads](#10-operating-system-examples-windows-xp-and-linux-threads)
 11. [Scheduling: multilevel feedback queue, multiple processors, threads, and algorithm evaluation](#11-scheduling-multilevel-feedback-queue-multiple-processors-threads-and-algorithm-evaluation)
     - 11.1 Multilevel queue · 11.2 Multilevel feedback queue (MLFQ) · 11.3 Multiple-processor scheduling · 11.4 Real-time scheduling · 11.5 Thread scheduling · 11.6 Algorithm evaluation · 11.7 Practice problem from the slides
 
@@ -90,13 +89,14 @@
 
 After studying these notes, you should be able to:
 
-- identify the components of a thread and contrast threads with processes;
-- explain the benefits and challenges of multithreaded and multicore programming, including Amdahl's Law;
-- compare user-level and kernel-level threads, with merits, demerits, and jacketing;
-- draw and explain the Many-to-One, One-to-One, Many-to-Many, and Two-level models;
-- use the Pthreads API (`pthread_create`, `pthread_join`, `pthread_exit`, `pthread_cancel`) and describe Windows and Java threading;
-- describe implicit threading: thread pools, fork-join, OpenMP, Grand Central Dispatch, and TBB;
-- explain threading issues: `fork()`/`exec()` semantics, signal handling, cancellation, thread-local storage, thread safety, and scheduler activations;
+- explain the 4-CPU summation scenario and why threads are better than multiple processes;
+- define a thread, list what each thread owns and what it shares, and contrast threads with processes;
+- state the merits of threads and how threads are scheduled;
+- compare user-level and kernel-level threads, with merits, demerits, and jacketing, and explain ULT states vs process states;
+- draw and explain the One-to-One, Many-to-One, and Many-to-Many models;
+- use the Pthreads API (`pthread_self`, `pthread_create`, `pthread_join`, `pthread_exit`, `pthread_cancel`) and explain thread termination and cancellation;
+- explain the threading issues: `fork()`/`exec()`, signal handling, thread pools, thread safety, and thread-specific data;
+- describe Windows XP threads (ETHREAD, KTHREAD, TEB) and Linux threads (`clone()` flags);
 - explain multilevel queue scheduling: separate queues, fixed-priority and time-slice scheduling between queues, starvation;
 - explain multilevel feedback queue scheduling with its five parameters and the three-queue example;
 - explain multiple-processor scheduling: AMP vs SMP, global and local ready queues, processor affinity, load balancing, multicore processors;
@@ -116,11 +116,15 @@ After studying these notes, you should be able to:
 
 ## 2. Why threads: motivation
 
+> **Source note:** sections 2 to 10 follow the slide order of `DOC-20260825-WA0000.pdf` (Threads lecture). `ch4.ppt` is used only to explain the points on those slides; no extra topics are added from it.
+
 ### 2.1 The 4-CPU summation scenario
 
 The lecture starts with a problem. A machine has **4 CPUs**. A program adds the numbers up to 10 million using one function `addall()`, and the whole process runs on **one CPU**.
 
 ```c
+#include <stdio.h>
+
 unsigned long addall() {
     int i = 0;
     unsigned long sum = 0;
@@ -130,15 +134,51 @@ unsigned long addall() {
     }
     return sum;
 }
+
+int main() {
+    unsigned long sum;
+    srandom(time(NULL));
+    sum = addall();
+    printf("%lu\n", sum);
+}
 ```
 
-**Problem:** the other three processors are not used, and the single process takes a long time.
+**Problem:** the other processors are not utilized, and the single process takes a long time to complete execution.
+
+### 2.2 Better method: four processes
+
+![Slide: four processes, one per CPU](assets/doc-p03-four-processes.png)
+
+- Create **4 processes** so that each process adds **2.5 million** numbers.
+- This needs **4 `fork()` calls**.
+- Each process can execute on **one processor**, which reduces the computation time.
+
+**But:**
+
+- each process has its **own set of instructions, data, heap, and stack**;
+- a **large portion of these 4 processes is similar**;
+- so there is **a lot of duplication** of instructions and data;
+- **process management and IPC** are also required.
+
+The slide sums this up as **significant overheads — can we do better?**
+
+### 2.3 Even better: four threads in one process
+
+![Slide: four threads in one process](assets/doc-p04-four-threads.png)
+
+- Create **4 threads under 1 process**, using **Pthreads**.
+- Each thread executes on a **separate processor**.
+- The threads **share** the common instructions, parameters, heap, etc.
+- However, **each thread has a separate stack**.
+- Each thread adds **2.5 million** numbers.
+- **Threads are lighter than processes.**
+- **Very few or no system calls** are needed to create threads.
 
 | Attempt | What is done | Result |
 |---|---|---|
-| **1. One process** | One process, one CPU | Three CPUs sit idle; slow |
-| **2. Four processes** | Call `fork()` four times; each process adds 2.5 million numbers on its own CPU | Faster, **but** each process has its own instructions, data, heap, and stack. Most of this is identical, so there is a lot of duplication. Process management and IPC are also needed. |
-| **3. Four threads in one process** | Create 4 threads with Pthreads; each thread adds 2.5 million numbers on a separate processor | Threads share the instructions, global data, and heap. Each thread only needs its **own stack**. Threads are lighter than processes, and few or no system calls are needed to create them. |
+| **1. One process** | One process on one CPU | Other CPUs sit idle; slow |
+| **2. Four processes** | 4 `fork()` calls; each adds 2.5 million numbers | Faster, but heavy duplication; process management and IPC needed |
+| **3. Four threads** | 4 Pthreads in one process; each adds 2.5 million numbers | Faster and light: only the stack is separate per thread |
 
 ```mermaid
 flowchart LR
@@ -156,228 +196,128 @@ flowchart LR
     end
 ```
 
-![Slide: four processes, one per CPU](assets/doc-p03-four-processes.png)
-
-![Slide: four threads in one process](assets/doc-p04-four-threads.png)
-
-### 2.2 Where threads are used
-
-- Most modern applications are **multithreaded**. Threads run *within* an application.
-- Separate tasks inside one application can be given to separate threads:
-  - update the display,
-  - fetch data,
-  - check spelling,
-  - answer a network request.
-- **Process creation is heavy-weight; thread creation is light-weight.**
-- Threads can simplify code and increase efficiency.
-- **Kernels are generally multithreaded** as well.
-
-### 2.3 Multithreaded server architecture
-
-![Slide: multithreaded server architecture](assets/ch4-p06-multithreaded-server.png)
-
-A busy server does not create a new process for each client. Instead:
-
-```mermaid
-flowchart LR
-    C["Client"] -->|"(1) request"| S["Server"]
-    S -->|"(2) create a new thread to service the request"| T["Worker thread"]
-    S -->|"(3) resume listening for more client requests"| S
-```
-
-The server stays responsive because it goes straight back to listening while the worker thread handles the request.
+The program that does this is given in [section 6.4](#64-lecture-example-four-thread-summation).
 
 ---
 
 ## 3. Thread concept
 
-### 3.1 Definition and Thread Control Block
+### 3.1 Threads and the Thread Control Block
 
-> **Thread:** a separate stream of execution within a single process. It is the basic unit of CPU utilization.
+![Slide: threads share data, files and code; each has its own registers and stack](assets/doc-p05-thread-tcb.png)
 
-- Threads of one process are **not isolated** from each other (they share memory).
-- A thread gives a mechanism to perform multiple tasks **concurrently**.
-- The state of a thread is stored in a **Thread Control Block (TCB)**, which holds the registers and stack information.
+> **Thread:** a separate stream of execution within a single process. (`ch4.ppt` also calls it the basic unit of CPU utilization.)
 
-Every thread has its own:
+- Threads of one process are **not isolated** from each other (they share the process's memory).
+- The state of a thread is stored in a **Thread Control Block (TCB)**, which contains its **registers and stack**.
+- Threads provide a mechanism to perform **multiple tasks concurrently**.
+- Each thread has associated with it:
+  - a **thread ID**,
+  - a **program counter**,
+  - a **register set**,
+  - a **stack**.
 
 | Private to each thread | Shared by all threads of the process |
 |---|---|
-| Thread ID | Code section |
-| Program counter | Data section (global variables) |
-| Register set | Heap |
-| Stack | Open files, signals, other OS resources |
+| Thread ID | Code |
+| Program counter | Data |
+| Register set | Files |
+| Stack | |
 
-### 3.2 Single-threaded vs multithreaded process
+### 3.2 Single-threaded and multithreaded processes
 
 ![Slide: single and multithreaded processes](assets/ch4-p05-single-vs-multithreaded.png)
 
+- A **single-threaded process** has one set of registers and one stack. The lecture calls it a **heavyweight process**.
+- In a **multithreaded process**, code, data, and files are shared, while each thread has its own registers and stack. The lecture calls this a **lightweight process**.
+
 ```mermaid
 flowchart LR
-    subgraph ST["Single-threaded process (heavyweight process)"]
+    subgraph ST["Single-threaded process (heavyweight)"]
         direction TB
         A1["code | data | files"]
-        A2["registers | PC | stack"]
+        A2["registers | stack"]
         A3["one thread"]
     end
-    subgraph MT["Multithreaded process (threads = lightweight processes)"]
+    subgraph MT["Multithreaded process (lightweight)"]
         direction TB
         B1["code | data | files (shared)"]
         subgraph TH["per-thread"]
             direction LR
-            X1["registers<br/>PC<br/>stack<br/>thread 1"]
-            X2["registers<br/>PC<br/>stack<br/>thread 2"]
-            X3["registers<br/>PC<br/>stack<br/>thread 3"]
+            X1["registers<br/>stack<br/>thread 1"]
+            X2["registers<br/>stack<br/>thread 2"]
+            X3["registers<br/>stack<br/>thread 3"]
         end
     end
 ```
-
-- A traditional process with one thread of control is a **heavyweight process**.
-- A thread is often called a **lightweight process (LWP)**.
 
 ### 3.3 Threads vs processes
 
 | Thread | Process |
 |---|---|
 | Has **no** data segment or heap of its own | Has code, heap, stack, and other segments |
-| Cannot live on its own; must be attached to a process | Has **at least one** thread |
-| There can be more than one thread in a process; each has its own stack | Threads within a process share the same code and files |
-| If a thread dies, its stack is reclaimed | If a process dies, **all** its threads die |
-| Cheap to create and switch | Expensive to create and switch |
-| No isolation from sibling threads | Isolated from other processes |
+| Cannot live on its own; must be **attached to a process** | Has **at least one** thread |
+| There can be more than one thread in a process; **each thread has its own stack** | Threads within a process **share the same code and files** |
+| If a thread dies, **its stack is reclaimed** | If a process dies, **all its threads die** |
 
-### 3.4 Merits of threads
+### 3.4 Merits of using threads
 
 - Threads can be **created and destroyed quickly** compared with processes.
-- Applications can use threads to run some functions **in the background**.
-- Threads **share the same address space**.
-- **Switching between threads takes less time** because the state record is smaller.
+- Applications can use threads to execute some functions **in the background**.
+- Threads can **share the same address space**.
+- It takes **less time to switch between threads** because of the smaller state record.
 
-### 3.5 Thread scheduling and thread states
+> **Explanation (`ch4.ppt`):** process creation is heavy-weight while thread creation is light-weight, and thread switching has lower overhead than a full context switch between processes.
 
-- Threads are scheduled on the CPU **independently**.
+### 3.5 Thread scheduling
+
+- Threads are scheduled to execute on the CPU **independently**.
 - The state of each executing thread is maintained **separately**.
 - If a process is **suspended**, all its threads are suspended.
 - If a process is **terminated**, all its threads are terminated.
-- A thread has states just like a process: **ready, running, waiting/blocked**.
+- A thread also has states like **ready, running, waiting or blocked**.
 
 ---
 
-## 4. Benefits and multicore programming
+## 4. User-level and kernel-level threads
 
-### 4.1 Four benefits
+### 4.1 Types of threads
 
-| Benefit | Meaning |
-|---|---|
-| **Responsiveness** | Execution may continue even if part of the process is blocked. Very important for user interfaces. |
-| **Resource sharing** | Threads share the resources of their process. This is easier than shared memory or message passing between processes. |
-| **Economy** | Thread creation is cheaper than process creation, and thread switching has lower overhead than a full context switch. |
-| **Scalability** | A multithreaded process can take advantage of **multicore** architectures. |
+There are two types of threads: **User-Level Threads (ULT)** and **Kernel-Level Threads (KLT)**.
 
-> **Memory aid:** **R-R-E-S** — Responsiveness, Resource sharing, Economy, Scalability.
+> **Note from the lecture:** this is about threads for *user* processes. Both ULTs and KLTs execute in user mode. An OS may also have its own threads, but that is not what is discussed here.
 
-### 4.2 Multicore challenges
+### 4.2 Threads management
 
-Multicore and multiprocessor systems put pressure on programmers. The five challenges are:
+![Slide: pure user-level, pure kernel-level, and combined](assets/doc-p11-ult-klt-combined.png)
 
-1. **Dividing activities** — finding parts of the application that can run as separate tasks.
-2. **Balance** — making sure the tasks do work of roughly equal value.
-3. **Data splitting** — dividing the data among the tasks.
-4. **Data dependency** — synchronizing tasks when one depends on data from another.
-5. **Testing and debugging** — many execution paths make this much harder.
+**User-Level Threads (ULTs)**
 
-### 4.3 Concurrency vs parallelism
-
-![Slide: concurrency vs parallelism](assets/ch4-p09-concurrency-vs-parallelism.png)
-
-| Concurrency | Parallelism |
-|---|---|
-| Supports **more than one task making progress** | The system can perform more than one task **simultaneously** |
-| Possible on a **single core**: the scheduler interleaves the tasks | Needs **multiple cores** |
-| Tasks take turns | Tasks truly run at the same instant |
-
-```text
-Concurrent execution on a single core (interleaving):
-single core:  T1  T2  T3  T4  T1  T2  T3  T4  T1 ...          → time
-
-Parallel execution on a multicore system:
-core 1:       T1  T3  T1  T3  T1 ...
-core 2:       T2  T4  T2  T4  T2 ...                          → time
-```
-
-> **Exam line:** it is possible to have concurrency without parallelism. Parallelism always implies concurrency.
-
-### 4.4 Data vs task parallelism
-
-![Slide: data and task parallelism](assets/ch4-p11-data-task-parallelism.png)
-
-| Type | Idea | Example |
-|---|---|---|
-| **Data parallelism** | Distribute **subsets of the same data** across cores and perform the **same operation** on each | Summing an array: core 0 sums elements `0..N/2-1`, core 1 sums the rest |
-| **Task parallelism** | Distribute **threads (tasks)** across cores, each thread doing a **unique operation** | One thread computes the mean while another computes the standard deviation |
-
-### 4.5 Amdahl's Law
-
-![Slide: Amdahl's Law graph](assets/ch4-p13-amdahl-graph.png)
-
-Amdahl's Law identifies the performance gain from adding cores to an application that has both **serial** and **parallel** parts.
-
-Let `S` = serial portion and `N` = number of processing cores:
-
-```text
-                      1
-speedup  ≤  ─────────────────────
-              S  +  (1 − S) / N
-```
-
-- **Example from the slides:** application is 75% parallel and 25% serial (`S = 0.25`). Moving from 1 to 2 cores gives
-  `1 / (0.25 + 0.75/2) = 1 / 0.625 = 1.6` times speedup.
-- As `N → ∞`, speedup approaches **`1 / S`**. With `S = 0.25` the best possible speedup is 4, however many cores are added.
-- The **serial portion has a disproportionate effect** on the gain from extra cores.
-- Open question raised in the slides: does the law take contemporary multicore systems into account?
-
----
-
-## 5. User-level and kernel-level threads
-
-> **Note from the lecture:** this section is about threads of *user processes*. Both ULTs and KLTs execute user code in user mode. The OS may have its own internal threads too, but that is a different topic.
-
-### 5.1 User threads
-
-- Management is done by a **user-level threads library**; the application handles them.
+- Managed by **applications and a user-level thread library**.
 - The **kernel is not aware** of these threads.
-- Three primary thread libraries: **POSIX Pthreads**, **Windows threads**, **Java threads**.
 
-### 5.2 Kernel threads
+**Kernel-Level Threads (KLTs)**
 
-![Slide: user and kernel threads](assets/ch4-p15-user-kernel-threads.png)
-
-- Created, supported, and managed by the **kernel**.
+- **Created and managed by the kernel.**
 - Also called **lightweight processes**.
-- Virtually all general-purpose operating systems support them: **Windows, Linux, Mac OS X, iOS, Android**.
 
-```mermaid
-flowchart TB
-    subgraph US["User space"]
-        U1(("user thread")) 
-        U2(("user thread"))
-        U3(("user thread"))
-    end
-    subgraph KS["Kernel space"]
-        K1(("kernel thread"))
-        K2(("kernel thread"))
-        K3(("kernel thread"))
-    end
-    U1 -.- K1
-    U2 -.- K2
-    U3 -.- K3
-```
+![Slide (ch4): user threads and kernel threads](assets/ch4-p15-user-kernel-threads.png)
 
-### 5.3 ULT states vs process states
+The DOC diagram shows three arrangements:
+
+| Arrangement | What happens |
+|---|---|
+| **(a) Pure user-level** | All threads live in the threads library in user space; the kernel sees only the process `P` |
+| **(b) Pure kernel-level** | Every thread is a kernel-level thread; there is no thread library layer |
+| **(c) Combined** | The threads library maps user-level threads onto kernel-level threads |
+
+> **Explanation (`ch4.ppt`):** virtually all general-purpose operating systems support kernel threads, for example Windows, Linux, and Mac OS X.
+
+### 4.3 Relationship between ULT states and process states
 
 ![Slide: relationships between ULT states and process states](assets/doc-p12-ult-states.png)
 
-With pure user-level threads the kernel schedules the **process**, while the library schedules the **threads**. So a thread's state and its process's state can look inconsistent. The lecture (from Stallings) shows process B with two threads:
+With pure user-level threads the kernel schedules the **process**, while the library schedules the **threads**. So a thread's state and its process's state can look inconsistent. The slide (from Stallings, Ref. 2) shows process B with two threads:
 
 | Case | Thread 1 | Thread 2 | Process B | What happened |
 |---|---|---|---|---|
@@ -388,61 +328,66 @@ With pure user-level threads the kernel schedules the **process**, while the lib
 
 > **Key point:** with ULTs, a thread marked *Running* is only really executing when its process is also *Running*.
 
-### 5.4 Merits and demerits of ULT, jacketing
+### 4.4 Merits and demerits of ULT
+
+![Slide: ULT — thread table inside each process, run-time system in user space](assets/doc-p13-ult-thread-table.png)
 
 **Merits (+)**
 
 - Can be implemented on an OS that **does not support threading**.
 - **Fast creation and switching.**
-- **No system call** (no mode switch) is needed for thread management.
+- **Does not need a system call.**
 
 **Demerits (−)**
 
-- A process with many threads still competes as **one unit** with a single-threaded process.
-- Scheduling decisions cannot favour processes that have a larger number of threads.
-- If one thread makes a **blocking system call, all the other threads are blocked** too.
+- A process with many threads still **competes as one unit** with a single-threaded process.
+- Scheduling decisions **cannot favour processes with a larger number of threads**.
+- If one thread makes a **system call, all the other threads get blocked**.
 
-> **Jacketing** is the solution to the blocking problem. A jacket routine **converts a blocking system call into a non-blocking system call**. The thread library checks first whether the call would block; if so, it runs another thread and retries later.
+> **Solution — Jacketing:** converts a **blocking system call into a non-blocking system call**.
 
-### 5.5 Merits and demerits of KLT
+The diagram shows why: the **thread table** and **run-time system** sit inside each process in user space, while the kernel only has a **process table**. The kernel does not know the threads exist.
+
+### 4.5 Merits and demerits of KLT
+
+![Slide: KLT — thread table and process table in the kernel](assets/doc-p14-klt-thread-table.png)
 
 **Merits (+)**
 
-- The **thread table is stored in kernel space**, so the kernel knows how many threads each process has.
+- The **thread table is stored in kernel space**, so the kernel knows how many threads a process has.
 - The OS can give **more time quantum** to a process with a large number of threads.
-- Better for applications that **block frequently**.
+- Better for applications that **frequently block**.
 - One thread making a system call **does not block the others**.
 
 **Demerits (−)**
 
 - **Slow.**
-- **Larger overhead** because management is done in the kernel.
+- **Larger overhead** due to kernel-level management.
 - Transferring control from one thread to another within the same process requires a **mode switch to the kernel**.
 
-### 5.6 Comparison table
+### 4.6 Comparison table
 
 | Aspect | User-Level Threads (ULT) | Kernel-Level Threads (KLT) |
 |---|---|---|
-| Managed by | Thread library in user space | Kernel |
-| Kernel awareness | Kernel is unaware | Kernel knows every thread (thread table in kernel) |
-| Creation and switching | Fast; no system call | Slow; needs a mode switch |
-| Blocking system call | Blocks the whole process | Blocks only that thread |
-| Multiprocessor use | Threads of one process cannot run in parallel | Threads can run on different CPUs |
-| Scheduling | Process is the unit; cannot favour many-thread processes | Kernel can give more CPU time to many-thread processes |
-| OS support needed | None; works even if OS has no threads | OS must support threads |
+| Managed by | Application and user-level thread library | Kernel |
+| Kernel awareness | Kernel is not aware | Kernel knows every thread (thread table in kernel) |
+| Creation and switching | Fast; no system call | Slow; needs a mode switch to the kernel |
+| Blocking system call | Blocks all threads of the process | Blocks only that thread |
+| Scheduling | Cannot favour processes with many threads | Can give more time quantum to processes with many threads |
+| OS support needed | None; works even if the OS does not support threading | OS must support threads |
 | Fix for main weakness | Jacketing | — |
 
 ---
 
-## 6. Multithreading models
+## 5. Multithreading models
 
-A multithreading model describes how **user threads are mapped to kernel threads**.
+The lecture lists three models: **One-to-One, Many-to-One, Many-to-Many**. A model describes how user threads are mapped to kernel threads.
 
-### 6.1 Many-to-One
+### 5.1 Many-to-One
 
 ![Slide: many-to-one model](assets/ch4-p17-many-to-one.png)
 
-Many user-level threads are mapped to a **single** kernel thread.
+**Many user-level threads are mapped to a single kernel thread.**
 
 ```mermaid
 flowchart TB
@@ -452,16 +397,13 @@ flowchart TB
     U4(("user")) --> K
 ```
 
-- **One thread blocking causes all to block.**
-- Multiple threads **may not run in parallel** on a multicore system because only one may be in the kernel at a time.
-- **Few systems currently use this model.**
-- Examples: **Solaris Green Threads**, **GNU Portable Threads**.
+> **Explanation (`ch4.ppt`):** one thread blocking causes all to block, and the threads may not run in parallel on a multicore system because only one may be in the kernel at a time. Few systems currently use this model. Examples: Solaris Green Threads, GNU Portable Threads.
 
-### 6.2 One-to-One
+### 5.2 One-to-One
 
 ![Slide: one-to-one model](assets/ch4-p18-one-to-one.png)
 
-Each user-level thread maps to **one** kernel thread.
+**Each user-level thread maps to a kernel thread.**
 
 ```mermaid
 flowchart TB
@@ -471,20 +413,21 @@ flowchart TB
     U4(("user")) --> K4(("kernel"))
 ```
 
-- Creating a user-level thread **creates a kernel thread**.
-- **More concurrency** than many-to-one.
-- The number of threads per process is sometimes **restricted due to overhead**.
-- Examples: **Windows** (NT/XP/2000), **Linux**.
+- Examples: **Windows NT/XP/2000**, **Linux**.
 
-### 6.3 Many-to-Many
+> **Explanation (`ch4.ppt`):** creating a user-level thread creates a kernel thread, which gives more concurrency than many-to-one. The number of threads per process is sometimes restricted because of this overhead.
+
+### 5.3 Many-to-Many
 
 ![Slide: many-to-many model](assets/ch4-p19-many-to-many.png)
 
-Many user-level threads are mapped to **many** kernel threads.
+- **Many user-level threads are mapped to many kernel threads.**
+- It allows the operating system to **create a sufficient number of kernel threads**.
+- Example: **Windows NT/2000** (`ch4.ppt`: with the ThreadFiber package).
 
 ```mermaid
 flowchart TB
-    U1(("user")) --> M["mapping layer"]
+    U1(("user")) --> M["mapping"]
     U2(("user")) --> M
     U3(("user")) --> M
     U4(("user")) --> M
@@ -493,65 +436,66 @@ flowchart TB
     M --> K3(("kernel"))
 ```
 
-- Allows the operating system to **create a sufficient number of kernel threads**.
-- Example: **Windows NT/2000 with the ThreadFiber package**.
-- Otherwise **not very common**.
+### 5.4 Comparison
 
-### 6.4 Two-level model
-
-![Slide: two-level model](assets/ch4-p20-two-level.png)
-
-Similar to many-to-many, **except that it also allows a user thread to be bound to a kernel thread**. Important threads get a dedicated kernel thread while the rest are multiplexed.
-
-### 6.5 Comparison
-
-| Model | Mapping | Blocking call | Parallel on multicore? | Cost | Examples |
-|---|---|---|---|---|---|
-| **Many-to-One** | N user : 1 kernel | Blocks all threads | No | Lowest | Solaris Green Threads, GNU Portable Threads |
-| **One-to-One** | 1 user : 1 kernel | Blocks only that thread | Yes | High; thread count may be limited | Windows, Linux |
-| **Many-to-Many** | N user : M kernel | Kernel schedules another thread | Yes | Moderate | Windows with ThreadFiber |
-| **Two-level** | M:M plus bound threads | Same as M:M | Yes | Moderate | — |
+| Model | Mapping | Blocking call | Parallel on multicore? | Examples |
+|---|---|---|---|---|
+| **Many-to-One** | N user : 1 kernel | Blocks all threads | No | Solaris Green Threads, GNU Portable Threads |
+| **One-to-One** | 1 user : 1 kernel | Blocks only that thread | Yes | Windows NT/XP/2000, Linux |
+| **Many-to-Many** | N user : M kernel | Kernel can run another thread | Yes | Windows NT/2000 (ThreadFiber) |
 
 ---
 
-## 7. Thread libraries
+## 6. Thread libraries
 
-### 7.1 Overview
+### 6.1 Overview
 
-A **thread library** gives the programmer an **API for creating and managing threads**. There are two primary ways of implementing one:
+- A thread library provides the programmer with an **API for creating and managing threads**.
+- Two primary ways of implementing it:
+  1. a library **entirely in user space**;
+  2. a **kernel-level library** supported by the OS.
+- Three main thread libraries in use today: **POSIX Pthreads**, **Win32**, **Java**.
 
-1. the library is **entirely in user space** (calling it is a local function call);
-2. a **kernel-level library** supported by the OS (calling it results in a system call).
+> **Explanation (`ch4.ppt`):** with a user-space library, calling a library function is a local function call; with a kernel-level library, it results in a system call.
 
-Three main libraries: **POSIX Pthreads**, **Windows (Win32)**, **Java**.
+### 6.2 POSIX Pthreads
 
-### 7.2 Pthreads API and example
+- It can be used on **Linux** systems.
+- Programs using the Pthreads API must be compiled with **`-pthread`** or **`-lpthread`**.
+
+```c
+#include <pthread.h>
+
+pthread_t pthread_self();    /* returns: ID of the current (this) thread */
+```
+
+> **Explanation (`ch4.ppt`):** Pthreads is a POSIX standard (IEEE 1003.1c) API for thread creation and synchronization. It is a **specification, not an implementation**, and is common in UNIX operating systems such as Linux and Mac OS X.
+
+### 6.3 The pthread library calls
 
 ![Slide: pthread library calls](assets/doc-p21-pthread-library.png)
 
-- May be provided either as **user-level or kernel-level**.
-- A **POSIX standard (IEEE 1003.1c)** API for thread creation and synchronization.
-- It is a **specification, not an implementation**: the API says how the library must behave; how it is built is up to the library developers.
-- Common in UNIX operating systems (**Linux and Mac OS X**).
-- Programs must include `<pthread.h>` and be compiled/linked with **`-pthread`** or **`-lpthread`**.
+| Call | Purpose | Parameters |
+|---|---|---|
+| `int pthread_create(pthread_t *thread, const pthread_attr_t *attr, void *(*start_routine)(void *), void *arg);` | **Create** a thread in a process | `thread` receives the thread identifier (TID); `attr` gives attributes; `start_routine` is a pointer to the function that starts executing in the new thread; `arg` is the argument to that function |
+| `void pthread_exit(void *retval);` | **Destroy** (terminate) the calling thread | `retval` is the value returned |
+| `int pthread_join(pthread_t thread, void **retval);` | **Join:** wait for a specific thread to complete | `thread` is the TID to wait for; `retval` receives its exit status |
+| `pthread_t pthread_self();` | Get the ID of the calling thread | — |
 
-| Function | Purpose |
-|---|---|
-| `pthread_t pthread_self()` | Returns the ID of the current (calling) thread |
-| `int pthread_create(pthread_t *thread, const pthread_attr_t *attr, void *(*start_routine)(void *), void *arg)` | Creates a thread. `thread` receives the thread identifier (TID), `attr` gives attributes, `start_routine` is the function that starts executing in the new thread, `arg` is its argument |
-| `void pthread_exit(void *retval)` | Destroys (terminates) the calling thread |
-| `int pthread_join(pthread_t thread, void **retval)` | Waits for a specific thread to complete. `thread` is the TID to wait for; `retval` receives its exit status |
-| `pthread_cancel(tid)` | Requests cancellation of a thread before it has completed |
-| `pthread_attr_init(&attr)` | Sets default attributes |
+```mermaid
+sequenceDiagram
+    participant M as main thread
+    participant W as new thread
+    M->>W: pthread_create(&tid, NULL, thread_fn, arg)
+    Note over W: runs thread_fn(arg)
+    M->>M: pthread_join(tid, NULL) — waits
+    W-->>M: returns / pthread_exit(retval)
+    Note over M: continues
+```
 
-**A thread terminates when any of these happens:**
+### 6.4 Lecture example: four-thread summation
 
-- it completes its function and returns a value;
-- it receives a `pthread_cancel()` request;
-- the thread itself initiates termination (`pthread_exit`);
-- the process that owns the threads terminates.
-
-**Lecture example — the 4-thread summation (solves the scenario in section 2.1):**
+This program solves the scenario in [section 2.1](#21-the-4-cpu-summation-scenario).
 
 ```c
 #include <pthread.h>
@@ -589,411 +533,116 @@ int main() {
 }
 ```
 
-Compile and run (you must link the pthread library):
+Note: you need to **link the pthread library**.
 
 ```text
 $ gcc threads.c -lpthread
 $ ./a.out
 ```
 
-**Textbook example — one worker thread sums 1..N:**
+**How it works:**
+
+- `sum[4]` is a global array, so all four threads can see it; each thread writes only to **its own slot** `sum[id]`, so they never interfere.
+- The thread number (0–3) is passed as the argument; thread `id` adds the numbers from `id × 2500000` to `id × 2500000 + 2499999`.
+- `main` **joins** all four threads before adding the four partial sums, so it never prints an incomplete result.
+
+### 6.5 Terminating a thread
 
 ```c
 #include <pthread.h>
-#include <stdio.h>
-#include <stdlib.h>
 
-int sum;                              /* shared by the threads */
-void *runner(void *param);            /* the thread's function */
-
-int main(int argc, char *argv[]) {
-    pthread_t tid;                    /* thread identifier */
-    pthread_attr_t attr;              /* thread attributes */
-
-    pthread_attr_init(&attr);         /* default attributes */
-    pthread_create(&tid, &attr, runner, argv[1]);
-    pthread_join(tid, NULL);          /* wait for the thread to exit */
-    printf("sum = %d\n", sum);
-}
-
-void *runner(void *param) {
-    int i, upper = atoi(param);
-    sum = 0;
-    for (i = 1; i <= upper; i++)
-        sum += i;
-    pthread_exit(0);
-}
+void pthread_exit(return_value);
 ```
 
-**Joining 10 threads** — keep the IDs in an array and join in a loop:
+Threads terminate in one of the following conditions:
 
-```c
-#define NUM_THREADS 10
-pthread_t workers[NUM_THREADS];
-
-for (int i = 0; i < NUM_THREADS; i++)
-    pthread_join(workers[i], NULL);
-```
-
-```mermaid
-sequenceDiagram
-    participant M as main thread
-    participant W as worker thread
-    M->>W: pthread_create(&tid, &attr, runner, arg)
-    Note over W: runs runner()
-    M->>M: pthread_join(tid, NULL) — blocks
-    W-->>M: pthread_exit(0)
-    Note over M: continues, prints result
-```
-
-### 7.3 Windows threads program
-
-The same summation written with the Windows API follows the same pattern with different names:
-
-| Step | Windows API |
-|---|---|
-| Thread function | `DWORD WINAPI Summation(LPVOID Param)` |
-| Create a thread | `CreateThread(NULL, 0, Summation, &Param, 0, &ThreadId)` — default security attributes, default stack size, thread function, parameter, default creation flags, returns the thread identifier |
-| Wait for it | `WaitForSingleObject(ThreadHandle, INFINITE)` |
-| Clean up | `CloseHandle(ThreadHandle)` |
-
-Shared data is a global `DWORD Sum;`. `WaitForSingleObject` plays the role of `pthread_join`.
-
-### 7.4 Java threads
-
-- Java threads are **managed by the JVM**.
-- They are typically implemented using the threads model of the **underlying OS**.
-- Two ways to create a Java thread:
-  1. **extend the `Thread` class**;
-  2. **implement the `Runnable` interface** — this is the **standard practice**.
-
-```java
-// 1. Implementing Runnable
-class Task implements Runnable {
-    public void run() {
-        System.out.println("I am a thread.");
-    }
-}
-
-// 2. Creating a thread
-Thread worker = new Thread(new Task());
-worker.start();          // start() creates the thread and calls run()
-
-// 3. Waiting on a thread
-try {
-    worker.join();
-} catch (InterruptedException ie) { }
-```
-
-### 7.5 Java Executor framework
-
-Rather than creating threads explicitly, Java also allows thread creation around the **`Executor`** interface:
-
-```java
-public interface Executor {
-    void execute(Runnable command);
-}
-
-Executor service = new Executor(...);   // obtained from a factory in practice
-service.execute(new Task());
-```
-
-To **return a result**, a task implements `Callable<T>` and is submitted to an `ExecutorService`; the result is fetched from a `Future`:
-
-```java
-class Summation implements Callable<Integer> {
-    private int upper;
-    public Summation(int upper) { this.upper = upper; }
-
-    public Integer call() {              // like run(), but returns a value
-        int sum = 0;
-        for (int i = 1; i <= upper; i++) sum += i;
-        return new Integer(sum);
-    }
-}
-
-ExecutorService pool = Executors.newSingleThreadExecutor();
-Future<Integer> result = pool.submit(new Summation(upper));
-System.out.println("sum = " + result.get());   // get() blocks until done
-```
-
-The Executor framework **separates the task from the mechanics of running it**.
+1. the thread **completes its function** execution and returns a value;
+2. a **`pthread_cancel()`** request is received by the thread;
+3. the **thread itself initiates termination** (`pthread_exit`);
+4. the **process of the threads terminates**.
 
 ---
 
-## 8. Implicit threading
+## 7. Thread cancellation
 
-- Growing in popularity because, as the number of threads increases, **program correctness becomes harder with explicit threads**.
-- **Creation and management of threads is done by compilers and run-time libraries** rather than by programmers.
-- The programmer identifies *tasks*; the system maps them to threads.
+> **`pthread_cancel()`:** terminates a thread **before it has completed its execution**. (`ch4.ppt` calls the thread to be cancelled the **target thread**.)
 
-Five methods are explored: **Thread Pools, Fork-Join, OpenMP, Grand Central Dispatch, Intel Threading Building Blocks**.
+Whether a thread is actually cancelled depends on its **state** and **type**.
 
-### 8.1 Thread pools
+### 7.1 Cancellation states
 
-Create a number of threads in a **pool** where they **await work**.
-
-**Advantages**
-
-1. It is usually **slightly faster** to service a request with an existing thread than to create a new one.
-2. The number of threads in the application is **bound to the size of the pool**.
-3. **Separating the task from the mechanics of creating it** allows different strategies for running the task, for example scheduling tasks to run periodically.
-
-- The **Windows API** supports thread pools: a function such as `DWORD WINAPI PoolFunction(PVOID Param)` is written to run as a separate thread and is handed to the pool.
-- **Java thread pools** — three factory methods in the `Executors` class:
-
-| Factory method | Pool created |
+| State | Meaning |
 |---|---|
-| `Executors.newSingleThreadExecutor()` | Pool of size 1 |
-| `Executors.newFixedThreadPool(int size)` | Pool with a fixed number of threads |
-| `Executors.newCachedThreadPool()` | Unbounded pool that reuses threads |
+| `PTHREAD_CANCEL_DISABLE` | The thread **cannot** be cancelled |
+| `PTHREAD_CANCEL_ENABLE` | **Default state.** The thread can be cancelled |
 
-```java
-ExecutorService pool = Executors.newCachedThreadPool();
-for (int i = 0; i < numTasks; i++)
-    pool.execute(new Task());
-pool.shutdown();        // rejects new tasks, finishes existing ones
-```
+> **Explanation (`ch4.ppt`):** if cancellation is disabled, the request **remains pending** until the thread enables it.
 
-### 8.2 Fork-Join
+### 7.2 Cancellation types
 
-![Slide: fork-join parallelism](assets/ch4-p39-fork-join.png)
-
-Multiple threads (tasks) are **forked**, and then **joined**. This is a divide-and-conquer strategy.
-
-**General algorithm:**
-
-```text
-Task(problem)
-    if problem is small enough
-        solve the problem directly
-    else
-        subtask1 = fork(new Task(subset of problem))
-        subtask2 = fork(new Task(subset of problem))
-        result1 = join(subtask1)
-        result2 = join(subtask2)
-        return combined results
-```
-
-```mermaid
-flowchart TB
-    T["task"] -->|fork| A["task"]
-    T -->|fork| B["task"]
-    A -->|fork| A1["task"]
-    A -->|fork| A2["task"]
-    B -->|fork| B1["task"]
-    B -->|fork| B2["task"]
-    A1 -->|join| A
-    A2 -->|join| A
-    B1 -->|join| B
-    B2 -->|join| B
-    A -->|join| T
-    B -->|join| T
-```
-
-**Fork-Join in Java**
-
-```java
-ForkJoinPool pool = new ForkJoinPool();
-int[] array = new int[SIZE];
-SumTask task = new SumTask(0, SIZE - 1, array);
-int sum = pool.invoke(task);
-
-class SumTask extends RecursiveTask<Integer> {
-    static final int THRESHOLD = 1000;
-    private int begin, end;
-    private int[] array;
-
-    protected Integer compute() {
-        if (end - begin < THRESHOLD) {          // small enough: solve directly
-            int sum = 0;
-            for (int i = begin; i <= end; i++) sum += array[i];
-            return sum;
-        } else {                                 // split
-            int mid = (begin + end) / 2;
-            SumTask left  = new SumTask(begin, mid, array);
-            SumTask right = new SumTask(mid + 1, end, array);
-            left.fork();
-            right.fork();
-            return right.join() + left.join();
-        }
-    }
-}
-```
-
-- **`ForkJoinTask`** is an abstract base class.
-- **`RecursiveTask`** and **`RecursiveAction`** extend `ForkJoinTask`.
-- `RecursiveTask` **returns a result** (the return value of `compute()`).
-- `RecursiveAction` **does not return a result**.
-
-### 8.3 OpenMP
-
-- A set of **compiler directives and an API** for C, C++, and FORTRAN.
-- Supports parallel programming in **shared-memory** environments.
-- Identifies **parallel regions**: blocks of code that can run in parallel.
-
-```c
-#include <omp.h>
-#include <stdio.h>
-
-int main() {
-    #pragma omp parallel            /* create as many threads as there are cores */
-    {
-        printf("I am a parallel region.");
-    }
-    return 0;
-}
-```
-
-Run a `for` loop in parallel:
-
-```c
-#pragma omp parallel for
-for (i = 0; i < N; i++) {
-    c[i] = a[i] + b[i];
-}
-```
-
-### 8.4 Grand Central Dispatch
-
-- An **Apple** technology for **macOS and iOS**.
-- Extensions to C, C++, and Objective-C, plus an API and a run-time library.
-- Allows identification of parallel sections; **manages most of the details of threading**.
-- A **block** is written as `^{ }`, for example `^{ printf("I am a block"); }`.
-- Blocks are placed in a **dispatch queue**. When a block is removed from the queue it is assigned to an available thread in a **thread pool**.
-
-Two types of dispatch queue:
-
-| Queue type | Behaviour |
-|---|---|
-| **Serial** | Blocks are removed in **FIFO order**, one at a time. The queue is per process and is called the **main queue**. Programmers can create additional serial queues within a program. |
-| **Concurrent** | Blocks are removed in FIFO order, but **several may be removed at a time**. There are four system-wide queues divided by quality of service. |
-
-Quality-of-service classes (as listed on the slide):
-
-- `QOS_CLASS_USER_INTERACTIVE`
-- `QOS_CLASS_USER_INITIATED`
-- `QOS_CLASS_USER_UTILITY`
-- `QOS_CLASS_USER_BACKGROUND`
-
-For **Swift**, a task is defined as a **closure**, which is similar to a block but without the caret. Closures are submitted with `dispatch_async()`:
-
-```swift
-let queue = dispatch_get_global_queue(QOS_CLASS_USER_INITIATED, 0)
-dispatch_async(queue, { print("I am a closure.") })
-```
-
-### 8.5 Intel TBB
-
-**Intel Threading Building Blocks** is a **template library for designing parallel C++ programs**.
-
-```cpp
-// serial version of a simple for loop
-for (int i = 0; i < n; i++)
-    apply(v[i]);
-
-// the same loop written with TBB
-parallel_for(size_t(0), n, [=](size_t i) { apply(v[i]); });
-```
-
----
-
-## 9. Threading issues
-
-The slides list these issues: semantics of `fork()` and `exec()`, signal handling (synchronous and asynchronous), thread cancellation (asynchronous or deferred), thread-local storage, scheduler activations, thread pools, thread safety, and thread-specific data.
-
-### 9.1 fork and exec semantics
-
-- **Question:** does `fork()` duplicate **only the calling thread** or **all threads**?
-- Some UNIX systems keep **two versions of `fork()`** so that both options are available.
-- **`exec()`** usually works as normal: the program given as its parameter **replaces the entire running process, including all threads**.
-- **Rule of thumb:** if `exec()` is called immediately after forking, duplicating only the calling thread is enough, because `exec()` will replace everything anyway. If the child does not call `exec()`, all threads should be duplicated.
-- The lecture's recommendation for multithreaded processes is to pair `fork()` with `exec()` (the slide words it as "use fork() only after exec()"), since forking a multithreaded process without `exec()` is risky.
-
-### 9.2 Signal handling
-
-> **Signal:** used in UNIX systems to **notify a process that a particular event has occurred**.
-
-A **signal handler** processes signals:
-
-1. A signal is **generated** by a particular event.
-2. The signal is **delivered** to a process.
-3. The signal is **handled** by one of two handlers: the **default** handler or a **user-defined** handler.
-
-- Every signal has a **default handler** that the kernel runs when handling that signal.
-- A **user-defined** signal handler can **override** the default.
-- Signals may be **synchronous** (caused by the running code itself, such as an illegal memory access or division by zero) or **asynchronous** (caused by an external event, such as Ctrl+C or a timer expiring).
-- For a **single-threaded** process, the signal is simply delivered to the process.
-
-**Where should a signal be delivered in a multithreaded process?** Four options:
-
-1. Deliver the signal to the **thread to which the signal applies**.
-2. Deliver the signal to **every thread** in the process.
-3. Deliver the signal to **certain threads** in the process.
-4. Assign a **specific thread to receive all signals** for the process.
-
-### 9.3 Thread cancellation
-
-> **Thread cancellation:** terminating a thread **before it has finished**. The thread to be cancelled is the **target thread**.
-
-| Approach | Behaviour | Pthreads type |
+| Type | Behaviour | Pthreads constant |
 |---|---|---|
 | **Asynchronous cancellation** | Terminates the target thread **immediately** | `PTHREAD_CANCEL_ASYNCHRONOUS` |
-| **Deferred cancellation** | The target thread **periodically checks** whether it should be cancelled, and is cancelled when it reaches a **cancellation point** | `PTHREAD_CANCEL_DEFERRED` |
+| **Deferred cancellation** | The target thread **periodically checks** whether it should be cancelled; it is cancelled when it reaches a **cancellation point** | `PTHREAD_CANCEL_DEFERRED` |
 
-Pthread code to create and cancel a thread:
+> **Explanation (`ch4.ppt`):** invoking `pthread_cancel()` only **requests** cancellation. The **default type is deferred**; a cancellation point can be created with `pthread_testcancel()`, after which a cleanup handler is invoked.
 
 ```c
 pthread_t tid;
-pthread_create(&tid, 0, worker, NULL);   /* create the thread */
+pthread_create(&tid, 0, worker, NULL);   /* create the thread      */
 ...
-pthread_cancel(tid);                     /* request cancellation */
-pthread_join(tid, NULL);                 /* wait for it to terminate */
+pthread_cancel(tid);                     /* request cancellation   */
+pthread_join(tid, NULL);                 /* wait for it to finish  */
 ```
 
-Invoking cancellation only **requests** it. Whether the thread is actually cancelled depends on its **state** and **type**:
+---
 
-| Mode | State | Type |
-|---|---|---|
-| Off | `PTHREAD_CANCEL_DISABLE` — thread cannot be cancelled | — |
-| Deferred | `PTHREAD_CANCEL_ENABLE` (default state) | Deferred (default type) |
-| Asynchronous | `PTHREAD_CANCEL_ENABLE` | Asynchronous |
+## 8. Threading issues
 
-- If cancellation is **disabled**, the request **remains pending** until the thread enables it.
-- The **default type is deferred**. Cancellation only happens when the thread reaches a cancellation point, for example `pthread_testcancel()`. Then the **cleanup handler** is invoked.
-- On **Linux**, thread cancellation is handled through **signals**.
+The lecture lists five issues:
 
-**Thread cancellation in Java:** deferred cancellation uses the **`interrupt()`** method, which sets the interrupted status of a thread. The thread then checks whether it has been interrupted:
+1. use of `fork()` and `exec()` system calls;
+2. signal handling;
+3. thread pools;
+4. thread safety;
+5. thread-specific data.
 
-```java
-Thread worker;
-...
-worker.interrupt();                 // set the interruption status
+### 8.1 Use of fork(), exec(), exit()
 
-// inside the worker
-while (!Thread.currentThread().isInterrupted()) {
-    ...
-}
-```
+- **Question:** does `fork()` duplicate **only the calling thread** or **all threads**?
+- A few UNIX systems keep **two versions of `fork()`** to have both options.
+- **`exec()`:** the program specified in the parameter to `exec()` **replaces the entire process, including all threads**.
+- **Recommendation (slide):** in a process with multiple threads, use `fork()` only together with `exec()` (the slide words it "use fork() only after exec()").
 
-### 9.4 Thread-local storage and thread-specific data
+> **Explanation (`ch4.ppt`):** if `exec()` is called immediately after forking, duplicating only the calling thread is enough, because `exec()` will replace everything anyway. If the child does not call `exec()`, all threads should be duplicated.
 
-> **Thread-local storage (TLS)** allows **each thread to have its own copy of data**.
+### 8.2 Signal handling
 
-- Useful when you **do not control the thread creation process**, for example when using a **thread pool**.
-- **Different from local variables:** local variables are visible only during a single function invocation, while TLS is visible **across function invocations**.
-- **Similar to `static` data**, except that TLS is **unique to each thread**.
+- **Signals** are used to **notify a process about events**.
+- A **signal handler** processes signals in the following way:
+  1. a signal is **generated** by a particular event;
+  2. the signal is **delivered** to a process;
+  3. the signal is **handled**.
+- **Signal delivery options** in a multithreaded process:
+  - to the **intended thread** (the thread to which the signal applies);
+  - to **every thread** in the intended process;
+  - to **certain threads** in the process;
+  - **assign a specific thread** to receive all signals for the process.
 
-**Thread-specific data** (the lecture's term for the same idea):
+> **Explanation (`ch4.ppt`):** step 3 is done by either the **default** handler (run by the kernel) or a **user-defined** handler that overrides the default. For a single-threaded process the signal is simply delivered to the process; the question of *which thread* only arises with multiple threads.
 
-- makes existing functions **thread-safe**;
-- may be slightly **less efficient** than being reentrant;
-- allows each thread to have its **own copy** of data;
-- provides **per-thread storage** for a function.
+### 8.3 Thread pools
 
-### 9.5 Thread safety
+- **Create and maintain** a number of threads in a **pool**.
+- **Assign work** to the threads as per the need.
+- It is a **faster** method to handle a request using an **existing thread** instead of creating a new one.
+- It **bounds the number of threads** in the application(s) to the size of the pool.
 
-> A function is **thread-safe** when it can be called by **multiple threads at the same time without creating any disruption**.
+> **Explanation (`ch4.ppt`):** the threads in the pool sit and **await work**; a request is handed to a free thread, and the thread goes back to the pool when it finishes.
+
+### 8.4 Thread safety
+
+> A function is called **thread-safe** when it can be called by **multiple threads at the same time without creating any disruptions**.
 
 Example of a function that is **not** thread-safe:
 
@@ -1010,67 +659,62 @@ static void Incr(int loops) {
 }
 ```
 
-It is unsafe because it **uses global or static values that are shared by all threads**. Two threads can read the same `glob`, both add one, and one update is lost.
+It **employs global or static values that are shared by all threads**. Two threads can read the same `glob`, both add one, and write back the same value, so one update is lost.
 
-**How to ensure thread safety**
+### 8.5 How to ensure thread safety
 
-1. **Serialize the function:** keep the critical section of the code **locked** so that only one thread accesses it at a time.
+1. **Serialize the function:** keep the critical section of the code **locked** so that only one thread accesses it at a time, keeping other threads out.
 2. Use only **thread-safe system functions**.
-3. **Avoid global and static variables.**
+3. **Avoid the use of global and static variables.**
 
-### 9.6 Scheduler activations and LWP
+### 8.6 Thread-specific data
 
-![Slide: scheduler activations and the LWP](assets/ch4-p57-scheduler-activations.png)
+- Makes existing functions **thread-safe**.
+  - May be slightly **less efficient than being reentrant**.
+- Allows **each thread to have its own copy of data**.
+  - Provides **per-thread storage** for a function.
+- Useful when you **do not have control over the thread creation process** (for example, when using a **thread pool**).
 
-- Both the **M:M** and **Two-level** models require communication between the kernel and the thread library to keep an **appropriate number of kernel threads** allocated to the application.
-- They typically use an intermediate data structure between user and kernel threads: the **lightweight process (LWP)**.
-  - To the user-thread library, an LWP appears to be a **virtual processor** on which the process can schedule a user thread to run.
-  - **Each LWP is attached to a kernel thread.**
-  - Design question: **how many LWPs should be created?**
-- **Scheduler activations** provide **upcalls**: a communication mechanism **from the kernel to the upcall handler in the thread library**.
-- This communication lets an application **maintain the correct number of kernel threads**.
-
-```mermaid
-flowchart TB
-    UT(("user thread")) --> LWP["LWP<br/>(lightweight process = virtual processor)"]
-    LWP --> KT(("kernel thread"))
-    KT -. "upcall: an event happened" .-> LIB["upcall handler in thread library"]
-```
-
-### 9.7 Pros and cons of multithreading
-
-| Advantages | Disadvantages |
-|---|---|
-| Easy to share resources | Threads compete for memory |
-| Faster to create | Thread safety must be ensured |
-| | An error in one thread can disrupt the others, because resources are shared |
-
-**Considerations for future design:** handling signals is tricky, and all threads must run the same program.
+> **Explanation (`ch4.ppt`, where it is called thread-local storage):** this is different from local variables, which are visible only during one function call; thread-specific data is visible **across function calls**. It is similar to `static` data, except that it is **unique to each thread**.
 
 ---
 
-## 10. Operating-system examples: Windows and Linux threads
+## 9. Threads: pros and cons
 
-### 10.1 Windows threads
+| Advantages of multithreading | Disadvantages of multithreading |
+|---|---|
+| Easy to share resources | Threads compete for acquiring memory |
+| Faster to create | Thread safety must be ensured |
+| | An error in one thread can disrupt the execution of other threads, due to sharing of resources |
+
+**Considerations for future design:**
+
+- handling signals is tricky;
+- all threads must run the same program.
+
+---
+
+## 10. Operating-system examples: Windows XP and Linux threads
+
+### 10.1 Windows XP threads
 
 ![Slide: Windows thread data structures](assets/ch4-p61-windows-thread-structures.png)
 
-- The **Windows API** is the primary API for Windows applications.
-- It implements the **one-to-one** mapping, at kernel level.
+- Windows XP implements **one-to-one mapping** of threads, at kernel level.
 - Each thread contains:
-  - a **thread ID**;
-  - a **register set** representing the state of the processor;
-  - **separate user and kernel stacks**, used when the thread runs in user mode or kernel mode;
-  - a **private data storage area** used by run-time libraries and dynamic link libraries (DLLs).
-- The register set, stacks, and private storage area are known as the **context of the thread**.
+  - a **unique thread ID**;
+  - a **set of registers**;
+  - **separate user and kernel stacks**;
+  - a **private data storage area**.
+- These (register set, stacks, private storage area) are called the **context of the thread**.
 
-Primary data structures of a thread:
+The primary data structures of a thread:
 
 | Structure | Full name | Contains | Lives in |
 |---|---|---|---|
 | **ETHREAD** | Executive thread block | Thread start address, pointer to the parent process, pointer to the KTHREAD | Kernel space |
-| **KTHREAD** | Kernel thread block | Scheduling and synchronization information, kernel-mode stack, pointer to the TEB | Kernel space |
-| **TEB** | Thread environment block | Thread identifier, user-mode stack, thread-local storage | User space |
+| **KTHREAD** | Kernel thread block | Scheduling and synchronization information, kernel stack, pointer to the TEB | Kernel space |
+| **TEB** | Thread environment block | Thread identifier, user stack, thread-local storage | User space |
 
 ```mermaid
 flowchart LR
@@ -1083,12 +727,13 @@ flowchart LR
     K --> T
 ```
 
+> **Explanation (`ch4.ppt`):** the user stack is used when the thread runs in user mode and the kernel stack when it runs in kernel mode; the private storage area is used by run-time libraries and DLLs.
+
 ### 10.2 Linux threads
 
-- Linux refers to them as **tasks** rather than threads.
-- Thread creation is done through the **`clone()`** system call.
+- Threads are referred to as **tasks** in Linux.
+- Tasks are created using the **`clone()`** system call.
 - `clone()` allows a child task to **share the address space** of the parent task (process).
-- **Flags control the behaviour:**
 
 | Flag | Meaning |
 |---|---|
@@ -1097,8 +742,7 @@ flowchart LR
 | `CLONE_SIGHAND` | Signal handlers are shared |
 | `CLONE_FILES` | The set of open files is shared |
 
-- `struct task_struct` points to the process data structures, which may be **shared or unique**.
-- With no sharing flags, `clone()` behaves like `fork()`; with all of them, it behaves like creating a thread.
+> **Explanation (`ch4.ppt`):** the flags decide how much the child shares. With none of these flags, `clone()` behaves like `fork()` (a separate process); with all of them, the child is effectively a thread of the parent.
 
 ---
 
@@ -4085,33 +3729,22 @@ The slides' "Date" server listens on a port with a `ServerSocket`, blocks in `ac
 | Thread | A separate stream of execution within a process; basic unit of CPU utilization |
 | TCB | Thread Control Block: stores a thread's registers and stack information |
 | Heavyweight process | A process with a single thread of control |
-| Lightweight process | A thread; also the intermediate structure between user and kernel threads |
-| Concurrency | More than one task making progress (possibly interleaved on one core) |
-| Parallelism | More than one task executing simultaneously (needs multiple cores) |
-| Data parallelism | Same operation on subsets of the same data across cores |
-| Task parallelism | Different operations (threads) distributed across cores |
-| Amdahl's Law | speedup ≤ 1 / (S + (1 − S)/N) |
+| Lightweight process | A multithreaded process / a kernel-level thread (lecture's term) |
 | ULT | Thread managed by a user-level library; kernel unaware |
 | KLT | Thread created and managed by the kernel |
 | Jacketing | Converting a blocking system call into a non-blocking one |
 | Many-to-One | Many user threads mapped to one kernel thread |
 | One-to-One | Each user thread mapped to its own kernel thread |
 | Many-to-Many | Many user threads mapped to many kernel threads |
-| Two-level model | Many-to-many plus the ability to bind a user thread to a kernel thread |
 | Pthreads | POSIX standard (IEEE 1003.1c) API; a specification, not an implementation |
-| Implicit threading | Thread creation and management done by compilers and run-time libraries |
-| Thread pool | A set of pre-created threads that await work |
-| Fork-join | Tasks are forked into subtasks and then joined |
-| OpenMP | Compiler directives and API for shared-memory parallel programming |
-| Grand Central Dispatch | Apple technology that places blocks on dispatch queues |
+| Thread pool | A maintained set of threads to which work is assigned as needed |
+| `pthread_self()` | Returns the ID of the calling thread |
 | Signal | Notification to a process that a particular event has occurred |
 | Target thread | The thread that is to be cancelled |
 | Asynchronous cancellation | Target thread is terminated immediately |
 | Deferred cancellation | Target thread checks periodically and stops at a cancellation point |
-| TLS | Per-thread copy of data, visible across function calls |
+| Thread-specific data | Per-thread copy of data; makes existing functions thread-safe |
 | Thread-safe function | Can be called by many threads at once without disruption |
-| Scheduler activation | Kernel-to-library communication using upcalls |
-| Upcall | A call from the kernel to the upcall handler in the thread library |
 | ETHREAD / KTHREAD / TEB | Windows thread structures: executive block, kernel block, environment block |
 | `clone()` | Linux system call that creates a task; flags control what is shared |
 | SMP | Each processor is self-scheduling |
@@ -4171,14 +3804,11 @@ The slides' "Date" server listens on a port with a `ServerSocket`, blocks in `ac
 | Pair | Critical difference |
 |---|---|
 | Process vs thread | Own address space vs shares the process's code, data, and files |
-| Concurrency vs parallelism | Making progress together vs executing at the same instant |
-| Data vs task parallelism | Same operation on split data vs different operations on different cores |
 | ULT vs KLT | Library-managed and invisible to the kernel vs kernel-managed |
 | Many-to-One vs One-to-One | One blocking call blocks all vs each thread independent |
-| Many-to-Many vs Two-level | Pure multiplexing vs multiplexing plus bound threads |
 | Asynchronous vs deferred cancellation | Immediate vs at a cancellation point |
-| Local variable vs TLS | Visible in one function call vs visible across calls, one copy per thread |
-| Synchronous vs asynchronous signal | Caused by the running code vs caused by an external event |
+| Local variable vs thread-specific data | Visible in one function call vs visible across calls, one copy per thread |
+| `pthread_exit` vs `pthread_cancel` | Thread ends itself vs another thread requests its termination |
 | AMP vs SMP | One master schedules vs every processor schedules itself |
 | Soft vs hard affinity | Tries to stay vs guaranteed to stay |
 | Push vs pull migration | Overloaded CPU pushes tasks vs idle CPU pulls tasks |
@@ -4222,26 +3852,24 @@ The slides' "Date" server listens on a port with a `ServerSocket`, blocks in `ac
 ### 33.4 High-yield diagrams to practise
 
 1. Single-threaded vs multithreaded process (shared vs private parts).
-2. Multithreaded server architecture.
-3. Concurrency on one core vs parallelism on two cores.
-4. Many-to-One, One-to-One, Many-to-Many, Two-level mappings.
+2. Four processes vs four threads for the 4-CPU summation.
+3. Pure user-level, pure kernel-level, and combined threads.
+4. Many-to-One, One-to-One, Many-to-Many mappings.
 5. ULT states vs process states (four cases).
-6. LWP between user thread and kernel thread.
-7. Windows ETHREAD → KTHREAD → TEB.
-8. Fork-join tree.
-9. Critical-section structure: entry, critical, exit, remainder.
-10. Race-condition interleaving table for `counter++` / `counter--`.
-11. Schematic view of a monitor, and a monitor with condition-variable queues.
-12. Dining-philosophers table.
-13. Java entry set and wait set.
-14. Resource-allocation graph: no deadlock, with deadlock, cycle without deadlock.
-15. Safe / unsafe / deadlock regions.
-16. RAG with claim edges (avoidance) and the unsafe case.
-17. Resource-allocation graph and its wait-for graph.
-18. Resource ordering with all arrows pointing up.
-19. MLFQ flow: Q0 → Q1 → Q2 with demotion and aging.
-20. AMP vs SMP organization.
-21. Trace-tape-driven simulation of scheduling algorithms.
+6. Windows ETHREAD → KTHREAD → TEB.
+7. Critical-section structure: entry, critical, exit, remainder.
+8. Race-condition interleaving table for `counter++` / `counter--`.
+9. Schematic view of a monitor, and a monitor with condition-variable queues.
+10. Dining-philosophers table.
+11. Java entry set and wait set.
+12. Resource-allocation graph: no deadlock, with deadlock, cycle without deadlock.
+13. Safe / unsafe / deadlock regions.
+14. RAG with claim edges (avoidance) and the unsafe case.
+15. Resource-allocation graph and its wait-for graph.
+16. Resource ordering with all arrows pointing up.
+17. MLFQ flow: Q0 → Q1 → Q2 with demotion and aging.
+18. AMP vs SMP organization.
+19. Trace-tape-driven simulation of scheduling algorithms.
 
 ---
 
@@ -4253,165 +3881,151 @@ The slides' "Date" server listens on a port with a `ServerSocket`, blocks in `ac
 2. What does a Thread Control Block contain?
 3. List what a thread owns privately and what it shares.
 4. Why is a thread called a lightweight process?
-5. State the four benefits of multithreading.
-6. Differentiate concurrency and parallelism in one line each.
-7. Define data parallelism and task parallelism.
-8. State Amdahl's Law.
-9. An application is 75% parallel. What is the speedup on 2 cores?
-10. What is a user-level thread?
-11. What is jacketing?
-12. Name the three multithreading models.
-13. Give one example system for the many-to-one model.
-14. What is the two-level model?
-15. What is Pthreads?
-16. What do `pthread_create()` and `pthread_join()` do?
-17. Name the two ways to create a thread in Java.
-18. What is implicit threading? Name any three methods.
-19. Give two advantages of thread pools.
-20. What is the difference between `RecursiveTask` and `RecursiveAction`?
-21. What does `#pragma omp parallel` do?
-22. Name the two types of dispatch queue in GCD.
-23. What is a signal?
-24. What is a target thread?
-25. Differentiate asynchronous and deferred cancellation.
-26. What is thread-local storage?
-27. When is a function thread-safe?
-28. What is an upcall?
-29. Expand ETHREAD, KTHREAD, and TEB.
-30. Which system call creates a thread in Linux?
-31. Differentiate AMP and SMP.
-32. Define processor affinity.
-33. Define a race condition.
-34. What is a critical section?
-35. State the three requirements of a critical-section solution.
-36. Which two variables does Peterson's solution use?
-37. What does "atomic" mean?
-38. Write the definition of `TestAndSet()`.
-39. Define a semaphore.
-40. What were `wait()` and `signal()` originally called?
-41. Differentiate binary and counting semaphores.
-42. What is busy waiting? What is a spinlock?
-43. What do `block()` and `wakeup()` do?
-44. What does a negative semaphore value indicate?
-45. Define starvation.
-46. What is priority inversion and how is it solved?
-47. Give the initial values of `mutex`, `full`, and `empty` in the bounded-buffer problem.
-48. What is `readcount` used for?
-49. Why can the semaphore solution to dining philosophers deadlock?
-50. Define a monitor.
-51. What operations are allowed on a condition variable?
-52. What happens if `x.signal()` is called and nobody is waiting?
-53. What is `x.wait(c)`?
-54. What is an adaptive mutex?
-55. What is a dispatcher object?
-56. Differentiate named and unnamed POSIX semaphores.
-57. What is the `synchronized` keyword in Java?
-58. What is a memory transaction?
-59. Define deadlock.
-60. Differentiate preemptable and non-preemptable resources.
-61. State the four necessary conditions for deadlock.
-62. Define request edge and assignment edge.
-63. A RAG has a cycle. Is there a deadlock?
-64. What are the three methods for handling deadlocks?
-65. What is a safe state?
-66. Does an unsafe state always lead to deadlock?
-67. What is a claim edge?
-68. Write the formula for the Need matrix.
-69. What is a wait-for graph?
-70. What is the complexity of the detection algorithm?
-71. List the two ways of recovering from deadlock.
-72. What are the three issues in resource preemption?
-73. Define multilevel feedback queue scheduling.
-74. List the five parameters that define an MLFQ scheduler.
-75. What is aging?
-76. Differentiate push migration and pull migration.
-77. What is a memory stall?
-78. Differentiate PCS and SCS.
-79. What do `PTHREAD_SCOPE_PROCESS` and `PTHREAD_SCOPE_SYSTEM` mean?
-80. Name the four algorithm-evaluation methods.
-81. State Little's formula.
-82. What is a trace tape?
+5. What is a user-level thread?
+6. What is jacketing?
+7. Name the three arrangements in the threads-management diagram (pure user-level, pure kernel-level, combined).
+8. Name the three multithreading models.
+9. Give one example system for the many-to-one model.
+10. What is Pthreads?
+11. What do `pthread_create()` and `pthread_join()` do?
+12. What does `pthread_self()` return?
+13. Which compiler flag is needed to compile a Pthreads program?
+14. Give two advantages of thread pools.
+15. What is a signal?
+16. What is a target thread?
+17. Differentiate asynchronous and deferred cancellation.
+18. What is thread-specific data?
+19. When is a function thread-safe?
+20. Expand ETHREAD, KTHREAD, and TEB.
+21. Which system call creates a thread in Linux?
+22. Differentiate AMP and SMP.
+23. Define processor affinity.
+24. Define a race condition.
+25. What is a critical section?
+26. State the three requirements of a critical-section solution.
+27. Which two variables does Peterson's solution use?
+28. What does "atomic" mean?
+29. Write the definition of `TestAndSet()`.
+30. Define a semaphore.
+31. What were `wait()` and `signal()` originally called?
+32. Differentiate binary and counting semaphores.
+33. What is busy waiting? What is a spinlock?
+34. What do `block()` and `wakeup()` do?
+35. What does a negative semaphore value indicate?
+36. Define starvation.
+37. What is priority inversion and how is it solved?
+38. Give the initial values of `mutex`, `full`, and `empty` in the bounded-buffer problem.
+39. What is `readcount` used for?
+40. Why can the semaphore solution to dining philosophers deadlock?
+41. Define a monitor.
+42. What operations are allowed on a condition variable?
+43. What happens if `x.signal()` is called and nobody is waiting?
+44. What is `x.wait(c)`?
+45. What is an adaptive mutex?
+46. What is a dispatcher object?
+47. Differentiate named and unnamed POSIX semaphores.
+48. What is the `synchronized` keyword in Java?
+49. What is a memory transaction?
+50. Define deadlock.
+51. Differentiate preemptable and non-preemptable resources.
+52. State the four necessary conditions for deadlock.
+53. Define request edge and assignment edge.
+54. A RAG has a cycle. Is there a deadlock?
+55. What are the three methods for handling deadlocks?
+56. What is a safe state?
+57. Does an unsafe state always lead to deadlock?
+58. What is a claim edge?
+59. Write the formula for the Need matrix.
+60. What is a wait-for graph?
+61. What is the complexity of the detection algorithm?
+62. List the two ways of recovering from deadlock.
+63. What are the three issues in resource preemption?
+64. Define multilevel feedback queue scheduling.
+65. List the five parameters that define an MLFQ scheduler.
+66. What is aging?
+67. Differentiate push migration and pull migration.
+68. What is a memory stall?
+69. Differentiate PCS and SCS.
+70. What do `PTHREAD_SCOPE_PROCESS` and `PTHREAD_SCOPE_SYSTEM` mean?
+71. Name the four algorithm-evaluation methods.
+72. State Little's formula.
+73. What is a trace tape?
 
 ### 34.2 Short-answer questions (3–5 marks)
 
 1. Using the 4-CPU summation scenario, explain why threads are better than multiple processes.
 2. Compare threads and processes.
-3. Explain the benefits of multithreaded programming.
-4. Explain the five challenges of multicore programming.
-5. Distinguish concurrency from parallelism and data parallelism from task parallelism, with diagrams.
-6. State Amdahl's Law and compute the speedup for `S = 0.25` with `N = 2` and `N → ∞`.
-7. Explain the merits and demerits of user-level threads. What is jacketing?
-8. Explain the merits and demerits of kernel-level threads.
-9. Explain the relationship between ULT states and process states with the four cases.
-10. Explain the three multithreading models with diagrams and examples.
-11. Write a Pthreads program that creates four threads to sum numbers and joins them.
-12. Explain how threads are created in Java. What is the Executor framework?
-13. Explain thread pools and the three Java factory methods.
-14. Explain fork-join parallelism with its general algorithm.
-15. Write short notes on OpenMP, Grand Central Dispatch, and Intel TBB.
-16. Explain the semantics of `fork()` and `exec()` in a multithreaded program.
-17. Explain signal handling and the four delivery options in a multithreaded process.
-18. Explain thread cancellation, its states, and its types in Pthreads.
-19. What is thread safety? Give an unsafe function and explain how to make functions thread-safe.
-20. Explain scheduler activations and the role of the LWP.
-21. Describe the Windows thread data structures with a diagram.
-22. Explain Linux threads and the `clone()` flags.
-23. Explain processor affinity and load balancing in multiprocessor scheduling.
-24. Show how `counter++` and `counter--` cause a race condition.
-25. Explain the critical-section problem and its general structure.
-26. Explain the three requirements for a critical-section solution.
-27. Why does the simple `turn` algorithm fail?
-28. Explain Peterson's solution and prove that it is correct.
-29. Explain how `TestAndSet()` provides mutual exclusion.
-30. Explain `compare_and_swap()` and its use as a lock.
-31. Write the bounded-waiting mutual-exclusion algorithm using `TestAndSet()`.
-32. Define a semaphore and show two uses of it.
-33. Explain the busy-waiting problem and the semaphore implementation that avoids it.
-34. Explain deadlock, starvation, and priority inversion with semaphores.
-35. Give the semaphore solution to the bounded-buffer problem.
-36. Give the semaphore solution to the readers-writers problem and state its variations.
-37. State the dining-philosophers problem, its deadlock, and three remedies.
-38. What are the problems with semaphores?
-39. Explain monitors and condition variables with a schematic diagram.
-40. Distinguish signal-and-wait from signal-and-continue.
-41. Explain how a monitor is implemented using semaphores.
-42. Write a monitor to allocate a single resource using conditional wait.
-43. Explain synchronization in Solaris.
-44. Explain synchronization in Windows and Linux.
-45. Explain POSIX mutex locks, semaphores, and condition variables.
-46. Explain Java monitors, the entry set, and the wait set.
-47. Write short notes on transactional memory and functional programming languages.
-48. Explain the system model for deadlocks.
-49. Explain the four necessary conditions for deadlock.
-50. Explain the resource-allocation graph and the basic facts about cycles.
-51. Explain how each of the four conditions can be prevented.
-52. How does resource ordering prevent circular wait?
-53. Define safe state, unsafe state, and safe sequence.
-54. Explain the resource-allocation-graph algorithm for avoidance.
-55. Write the safety algorithm.
-56. Write the resource-request algorithm.
-57. Explain the wait-for graph method of detection.
-58. Write the deadlock-detection algorithm for multiple instances.
-59. When should the detection algorithm be invoked?
-60. Explain recovery from deadlock by process termination and by resource preemption.
-61. Compare deadlock prevention, avoidance, and detection.
-62. Explain multilevel feedback queue scheduling with the three-queue example.
-63. Compare multilevel queue and multilevel feedback queue scheduling.
-64. Compare asymmetric and symmetric multiprocessing.
-65. Explain multicore processors, memory stall, and coarse-grained vs fine-grained multithreading.
-66. Explain thread scheduling: PCS, SCS, and the Pthread scheduling API.
-67. Explain deterministic modelling with an example.
-68. Explain queueing models and Little's formula.
-69. Explain simulations and implementation as evaluation methods.
+3. State the merits of using threads and explain how threads are scheduled.
+4. Explain thread pools and their advantages.
+5. Explain the merits and demerits of user-level threads. What is jacketing?
+6. Explain the merits and demerits of kernel-level threads.
+7. Explain the relationship between ULT states and process states with the four cases.
+8. Explain the three multithreading models with diagrams and examples.
+9. Write a Pthreads program that creates four threads to sum numbers and joins them.
+10. List the conditions under which a thread terminates.
+11. What is thread-specific data? When is it useful?
+12. Explain the semantics of `fork()` and `exec()` in a multithreaded program.
+13. Explain signal handling: the three steps and the four delivery options in a multithreaded process.
+14. Explain thread cancellation, its states, and its types in Pthreads.
+15. What is thread safety? Give an unsafe function and explain how to make functions thread-safe.
+16. Describe the Windows thread data structures with a diagram.
+17. Explain Linux threads and the `clone()` flags.
+18. Explain processor affinity and load balancing in multiprocessor scheduling.
+19. Show how `counter++` and `counter--` cause a race condition.
+20. Explain the critical-section problem and its general structure.
+21. Explain the three requirements for a critical-section solution.
+22. Why does the simple `turn` algorithm fail?
+23. Explain Peterson's solution and prove that it is correct.
+24. Explain how `TestAndSet()` provides mutual exclusion.
+25. Explain `compare_and_swap()` and its use as a lock.
+26. Write the bounded-waiting mutual-exclusion algorithm using `TestAndSet()`.
+27. Define a semaphore and show two uses of it.
+28. Explain the busy-waiting problem and the semaphore implementation that avoids it.
+29. Explain deadlock, starvation, and priority inversion with semaphores.
+30. Give the semaphore solution to the bounded-buffer problem.
+31. Give the semaphore solution to the readers-writers problem and state its variations.
+32. State the dining-philosophers problem, its deadlock, and three remedies.
+33. What are the problems with semaphores?
+34. Explain monitors and condition variables with a schematic diagram.
+35. Distinguish signal-and-wait from signal-and-continue.
+36. Explain how a monitor is implemented using semaphores.
+37. Write a monitor to allocate a single resource using conditional wait.
+38. Explain synchronization in Solaris.
+39. Explain synchronization in Windows and Linux.
+40. Explain POSIX mutex locks, semaphores, and condition variables.
+41. Explain Java monitors, the entry set, and the wait set.
+42. Write short notes on transactional memory and functional programming languages.
+43. Explain the system model for deadlocks.
+44. Explain the four necessary conditions for deadlock.
+45. Explain the resource-allocation graph and the basic facts about cycles.
+46. Explain how each of the four conditions can be prevented.
+47. How does resource ordering prevent circular wait?
+48. Define safe state, unsafe state, and safe sequence.
+49. Explain the resource-allocation-graph algorithm for avoidance.
+50. Write the safety algorithm.
+51. Write the resource-request algorithm.
+52. Explain the wait-for graph method of detection.
+53. Write the deadlock-detection algorithm for multiple instances.
+54. When should the detection algorithm be invoked?
+55. Explain recovery from deadlock by process termination and by resource preemption.
+56. Compare deadlock prevention, avoidance, and detection.
+57. Explain multilevel feedback queue scheduling with the three-queue example.
+58. Compare multilevel queue and multilevel feedback queue scheduling.
+59. Compare asymmetric and symmetric multiprocessing.
+60. Explain multicore processors, memory stall, and coarse-grained vs fine-grained multithreading.
+61. Explain thread scheduling: PCS, SCS, and the Pthread scheduling API.
+62. Explain deterministic modelling with an example.
+63. Explain queueing models and Little's formula.
+64. Explain simulations and implementation as evaluation methods.
 
 ### 34.3 Long-answer questions (8–10 marks)
 
-1. Explain threads in detail: motivation, thread vs process, benefits, and multicore programming issues including Amdahl's Law.
+1. Explain threads in detail: the 4-CPU motivation, threads vs processes, merits, and thread scheduling.
 2. Compare user-level and kernel-level threads, and explain all multithreading models with diagrams.
-3. Explain thread libraries: Pthreads, Windows, and Java, with code.
-4. Explain implicit threading and all five methods.
-5. Explain all threading issues: `fork`/`exec`, signal handling, cancellation, TLS, thread safety, and scheduler activations.
-6. Describe how Windows and Linux represent threads.
+3. Explain thread libraries and the Pthreads API (`pthread_self`, `pthread_create`, `pthread_join`, `pthread_exit`) with the four-thread summation program.
+4. Explain thread termination and thread cancellation: states and types.
+5. Explain all threading issues: `fork`/`exec`, signal handling, thread pools, thread safety, and thread-specific data.
+6. Describe how Windows XP and Linux represent threads.
 7. Explain multiple-processor scheduling: AMP, SMP, affinity, load balancing, and thread scheduling scopes.
 8. Explain the critical-section problem, its requirements, and Peterson's solution with proof.
 9. Explain synchronization hardware: disabling interrupts, TestAndSet, Swap, compare_and_swap, and the bounded-waiting algorithm.
@@ -4451,9 +4065,9 @@ The slides' "Date" server listens on a port with a `ServerSocket`, blocks in `ac
 2. In the many-to-one model, a blocking system call by one thread:<br>
    A. Blocks only that thread  B. Blocks the entire process  C. Kills the process  D. Has no effect
 3. Which model does Linux use?<br>
-   A. Many-to-One  B. One-to-One  C. Many-to-Many  D. Two-level
-4. With `S = 0.25`, the maximum speedup as `N → ∞` is:<br>
-   A. 1.6  B. 2  C. 4  D. Unbounded
+   A. Many-to-One  B. One-to-One  C. Many-to-Many  D. None of these
+4. Which threads are created and managed by the kernel and also called lightweight processes?<br>
+   A. User-level threads  B. Library threads  C. Kernel-level threads  D. Green threads
 5. Jacketing is used to:<br>
    A. Speed up KLTs  B. Convert a blocking call into a non-blocking call  C. Cancel a thread  D. Create a thread pool
 6. The default cancellation type in Pthreads is:<br>
@@ -4501,19 +4115,18 @@ The slides' "Date" server listens on a port with a `ServerSocket`, blocks in `ac
 
 ### 34.6 Numericals (must-practise)
 
-1. **Amdahl.** An application is 60% parallel. Compute the speedup on 2, 4, and infinitely many cores. *(Ans: S = 0.4 → 1.43, 1.82, 2.5.)*
-2. **Banker's — safety.** Solve Example 1(a) in section 29.1 and write the safe sequence. *(Ans: `<P1, P3, P4, P2, P0>`.)*
-3. **Banker's — request.** For the same data, decide the requests P1 (1,0,2), then P4 (3,3,0), then P0 (0,2,0). *(Ans: granted; must wait since resources are unavailable; denied since unsafe.)*
-4. **Safe state.** Solve Example 2 in section 29.2. *(Ans: `<P2, P1, P3, P4>`.)*
-5. **Unsafe state.** Solve Example 3 in section 29.3. *(Ans: unsafe; request denied.)*
-6. **Slide practice problem.** Solve Example 4 in section 29.4. *(Ans: (a) safe, `<P1, P2, P0>`; (b) request denied, the state would be unsafe.)*
-7. **Detection.** Solve the example in section 30.3 before and after P2's extra request. *(Ans: no deadlock; then P1, P2, P3, P4 deadlocked.)*
-8. **Detection practice question.** Solve section 30.4. *(Ans: P1 and P2 are deadlocked.)*
-9. **Minimum resources.** Three processes each need at most 2 instances of a resource. What is the minimum number of instances that guarantees no deadlock? *(Ans: 3 × (2 − 1) + 1 = 4.)*
-10. **RAG reading.** Draw the RAG of section 25.3, list the cycles, and state which processes are deadlocked.
-11. **MLFQ trace.** With Q0 (RR, 8 ms), Q1 (RR, 16 ms), Q2 (FCFS), trace single processes with bursts 5, 20, and 40 ms. *(Ans: 5 → finishes in Q0; 20 → 8 in Q0 + 12 in Q1; 40 → 8 in Q0 + 16 in Q1 + 16 in Q2.)*
-12. **Deterministic modelling.** Bursts 10, 29, 3, 7, 12 ms, all arriving at time 0. Find the average waiting time under FCFS, SJF, and RR (q = 10). *(Ans: 28, 13, 23 ms.)*
-13. **Preemptive priority with I/O (slide practice problem).** Solve section 11.7. *(Ans, smaller number = higher priority: P1 = 10, P2 = 15, P3 = 9, P4 = 18.)*
+1. **Banker's — safety.** Solve Example 1(a) in section 29.1 and write the safe sequence. *(Ans: `<P1, P3, P4, P2, P0>`.)*
+2. **Banker's — request.** For the same data, decide the requests P1 (1,0,2), then P4 (3,3,0), then P0 (0,2,0). *(Ans: granted; must wait since resources are unavailable; denied since unsafe.)*
+3. **Safe state.** Solve Example 2 in section 29.2. *(Ans: `<P2, P1, P3, P4>`.)*
+4. **Unsafe state.** Solve Example 3 in section 29.3. *(Ans: unsafe; request denied.)*
+5. **Slide practice problem.** Solve Example 4 in section 29.4. *(Ans: (a) safe, `<P1, P2, P0>`; (b) request denied, the state would be unsafe.)*
+6. **Detection.** Solve the example in section 30.3 before and after P2's extra request. *(Ans: no deadlock; then P1, P2, P3, P4 deadlocked.)*
+7. **Detection practice question.** Solve section 30.4. *(Ans: P1 and P2 are deadlocked.)*
+8. **Minimum resources.** Three processes each need at most 2 instances of a resource. What is the minimum number of instances that guarantees no deadlock? *(Ans: 3 × (2 − 1) + 1 = 4.)*
+9. **RAG reading.** Draw the RAG of section 25.3, list the cycles, and state which processes are deadlocked.
+10. **MLFQ trace.** With Q0 (RR, 8 ms), Q1 (RR, 16 ms), Q2 (FCFS), trace single processes with bursts 5, 20, and 40 ms. *(Ans: 5 → finishes in Q0; 20 → 8 in Q0 + 12 in Q1; 40 → 8 in Q0 + 16 in Q1 + 16 in Q2.)*
+11. **Deterministic modelling.** Bursts 10, 29, 3, 7, 12 ms, all arriving at time 0. Find the average waiting time under FCFS, SJF, and RR (q = 10). *(Ans: 28, 13, 23 ms.)*
+12. **Preemptive priority with I/O (slide practice problem).** Solve section 11.7. *(Ans, smaller number = higher priority: P1 = 10, P2 = 15, P3 = 9, P4 = 18.)*
 13. **Little's formula.** On average 7 processes arrive per second and 14 are in the queue. Find the average waiting time. *(Ans: W = n / λ = 2 s.)*
 
 ---
@@ -4526,7 +4139,7 @@ Define both (1 mark): a ULT is managed by a user-level thread library and the ke
 
 ### 35.2 Model: Multithreading models (5 marks)
 
-Draw three mapping diagrams (1.5 marks). **Many-to-One:** many user threads on one kernel thread; one blocking call blocks all; no parallelism on multicore; Solaris Green Threads, GNU Portable Threads (1). **One-to-One:** one kernel thread per user thread; more concurrency; thread count may be restricted by overhead; Windows, Linux (1). **Many-to-Many:** many user threads on many kernel threads; the OS creates a sufficient number of kernel threads; Windows with ThreadFiber (1). Add the **two-level** variant, which also allows a user thread to be bound to a kernel thread (0.5).
+Draw three mapping diagrams (1.5 marks). **Many-to-One:** many user threads on one kernel thread; one blocking call blocks all; no parallelism on multicore; Solaris Green Threads, GNU Portable Threads (1). **One-to-One:** one kernel thread per user thread; more concurrency; thread count may be restricted by overhead; Windows, Linux (1). **Many-to-Many:** many user threads on many kernel threads; the OS creates a sufficient number of kernel threads; Windows NT/2000 (1). Neat labels and the shared/separate parts in each diagram earn the remaining 0.5.
 
 ### 35.3 Model: Critical-section problem and Peterson's solution (8 marks)
 
@@ -4573,15 +4186,13 @@ For a 5-mark answer: give a precise definition, one labelled diagram or code fra
 
 - [ ] I can explain the 4-CPU scenario and why threads beat multiple processes.
 - [ ] I can list what a thread owns and what it shares, and compare threads with processes.
-- [ ] I can state the four benefits and the five multicore challenges.
-- [ ] I can distinguish concurrency/parallelism and data/task parallelism, and apply Amdahl's Law.
+- [ ] I can state the merits of threads and the thread-scheduling rules.
 - [ ] I can compare ULT and KLT with merits, demerits, jacketing, and the ULT-state cases.
-- [ ] I can draw and explain Many-to-One, One-to-One, Many-to-Many, and Two-level models.
-- [ ] I can write a Pthreads program with `pthread_create` and `pthread_join`.
-- [ ] I can describe Windows and Java thread creation and the Executor framework.
-- [ ] I can explain thread pools, fork-join, OpenMP, GCD, and TBB.
-- [ ] I can explain `fork`/`exec` semantics, signal delivery, cancellation, TLS, thread safety, and scheduler activations.
-- [ ] I can describe ETHREAD/KTHREAD/TEB and the Linux `clone()` flags.
+- [ ] I can draw and explain Many-to-One, One-to-One, and Many-to-Many models.
+- [ ] I can write a Pthreads program with `pthread_create` and `pthread_join`, and list the ways a thread terminates.
+- [ ] I can explain cancellation states and types (asynchronous vs deferred).
+- [ ] I can explain `fork`/`exec` semantics, signal delivery, thread pools, thread safety, and thread-specific data.
+- [ ] I can describe Windows XP ETHREAD/KTHREAD/TEB and the Linux `clone()` flags.
 - [ ] I can explain MLFQ with its five parameters, the three-queue example, and aging.
 - [ ] I can explain AMP vs SMP, processor affinity, load balancing, and multicore scheduling.
 - [ ] I can distinguish PCS and SCS thread scheduling.
