@@ -1,485 +1,352 @@
-# Operating Systems — T2 Complete Exam-Ready Notes
+# Operating Systems (24B11CS312) — Syllabus T2: Week-wise Notes
 
-> **Level:** Intermediate | **Coverage:** Threads + Process Synchronization + Deadlocks
-> **Built from:** the topics and their order come only from the lecture decks — `DOC-20260825-WA0000.pdf` (Threads: sections 2 to 10), `Week 6_1 / 6_2 / 6_3.pptx` (Critical section, Synchronization hardware, Semaphores, Classical problems, Monitors: Part 2), and `Week7_Deadlock.pptx` (Deadlocks: Part 3). The textbook decks `ch3.ppt`, `ch4.ppt`, `ch6.pdf`, `ch7.ppt`, and `ch8.ppt` are used only to explain a lecture topic more clearly; no extra topic is added from them.
-> **Exam use:** Definitions, diagrams, comparisons, algorithms, code interpretation, Banker's and detection numericals, viva points, and practice questions.
+> **How these notes are built:** every topic and its order come only from the weekly syllabus and the lecture PPTs (Week 5, Week 6_1 / 6_2 / 6_3, Week 7, Week 8). Nothing outside the PPTs has been added. Where a PPT slide is only a figure, the notes describe what the figure shows. Simple "how it works" explanations are added only to make a PPT point easy to understand.
 
-**Syllabus covered**
+## Weekly syllabus followed
 
-- User and Kernel threads, Multithreading models.
-- Process synchronization: Critical section problems, Semaphores, Synchronization hardware and monitors.
-- Deadlocks: System model, Characterization, Methods for handling deadlocks, Deadlock prevention, Avoidance and detection, Recovery from deadlock.
-
----
-
-## Contents
-
-### Part 1 — Threads, User and Kernel Threads, Multithreading Models, Thread Libraries, Threading Issues
-
-1. [Learning outcomes](#1-learning-outcomes)
-2. [Why threads: motivation](#2-why-threads-motivation)
-   - 2.1 The 4-CPU summation scenario · 2.2 Better method: four processes · 2.3 Even better: four threads in one process
-3. [Thread concept](#3-thread-concept)
-   - 3.1 Threads and the Thread Control Block · 3.2 Single-threaded and multithreaded processes · 3.3 Threads vs processes · 3.4 Merits of using threads · 3.5 Thread scheduling
-4. [User-level and kernel-level threads](#4-user-level-and-kernel-level-threads)
-   - 4.1 Types of threads · 4.2 Threads management · 4.3 ULT states vs process states · 4.4 Merits and demerits of ULT, jacketing · 4.5 Merits and demerits of KLT · 4.6 Comparison table
-5. [Multithreading models](#5-multithreading-models)
-   - 5.1 Many-to-One · 5.2 One-to-One · 5.3 Many-to-Many · 5.4 Comparison
-6. [Thread libraries](#6-thread-libraries)
-   - 6.1 Overview · 6.2 POSIX Pthreads · 6.3 The pthread library calls · 6.4 Lecture example: four-thread summation · 6.5 Terminating a thread
-7. [Thread cancellation](#7-thread-cancellation)
-   - 7.1 Cancellation states · 7.2 Cancellation types
-8. [Threading issues](#8-threading-issues)
-   - 8.1 fork(), exec(), exit() · 8.2 Signal handling · 8.3 Thread pools · 8.4 Thread safety · 8.5 How to ensure thread safety · 8.6 Thread-specific data
-9. [Threads: pros and cons](#9-threads-pros-and-cons)
-10. [Operating-system examples: Windows XP and Linux threads](#10-operating-system-examples-windows-xp-and-linux-threads)
-
-### Part 2 — Process Synchronization: Critical Section, Synchronization Hardware, Semaphores, Monitors
-
-11. [Background and the race condition](#11-background-and-the-race-condition)
-12. [The critical-section problem](#12-the-critical-section-problem)
-    - 12.1 Definition · 12.2 General structure · 12.3 First attempt: the turn variable · 12.4 Three requirements · 12.5 Preemptive vs non-preemptive kernels
-13. [Peterson's solution](#13-petersons-solution)
-14. [Synchronization hardware](#14-synchronization-hardware)
-    - 14.1 Disabling interrupts · 14.2 Locks · 14.3 test_and_set · 14.4 compare_and_swap · 14.5 Bounded-waiting mutual exclusion with test_and_set
-15. [Semaphores](#15-semaphores)
-    - 15.1 Definition · 15.2 Counting and binary semaphores · 15.3 Usage · 15.4 Busy waiting · 15.5 Implementation without busy waiting · 15.6 Deadlock, starvation, priority inversion
-16. [Classical problems of synchronization](#16-classical-problems-of-synchronization)
-    - 16.1 Bounded buffer · 16.2 Readers-writers · 16.3 Dining philosophers
-17. [Problems with semaphores](#17-problems-with-semaphores)
-18. [Monitors](#18-monitors)
-    - 18.1 Concept and syntax · 18.2 Condition variables · 18.3 Signal-and-wait vs signal-and-continue · 18.4 Monitor solution to dining philosophers · 18.5 Implementing a monitor with semaphores · 18.6 Resuming processes and the conditional wait · 18.7 Single-resource allocator
-19. [Synchronization examples](#19-synchronization-examples) *(overview only)*
-20. [Atomic transactions](#20-atomic-transactions) *(overview only)*
-
-### Part 3 — Deadlocks: System Model, Characterization, Prevention, Avoidance, Detection, Recovery
-
-21. [Resources and the system model](#21-resources-and-the-system-model)
-22. [The deadlock problem](#22-the-deadlock-problem)
-23. [Deadlock characterization: the four conditions](#23-deadlock-characterization-the-four-conditions)
-24. [Resource-allocation graph](#24-resource-allocation-graph)
-25. [Methods for handling deadlocks](#25-methods-for-handling-deadlocks)
-26. [Deadlock prevention](#26-deadlock-prevention)
-27. [Deadlock avoidance](#27-deadlock-avoidance)
-    - 27.1 A priori information · 27.2 Safe state · 27.3 Resource-allocation-graph algorithm · 27.4 Banker's algorithm · 27.5 Safety algorithm · 27.6 Resource-request algorithm
-28. [Banker's algorithm: solved examples](#28-bankers-algorithm-solved-examples)
-29. [Deadlock detection](#29-deadlock-detection)
-30. [Recovery from deadlock](#30-recovery-from-deadlock)
-31. [Prevention vs avoidance vs detection](#31-prevention-vs-avoidance-vs-detection)
-
-### Reference
-
-32. [Rapid revision tables](#32-rapid-revision-tables)
-33. [Exam question bank](#33-exam-question-bank)
-34. [Model answers and marking points](#34-model-answers-and-marking-points)
-35. [Final checklist](#final-checklist)
+| Week | Dates | Topics | Lectures |
+| --- | --- | --- | --- |
+| **Week 5** | 25-Aug to 29-Aug | Threads: Processes vs. Threads, User vs. Kernel Threads, Multithreading Models, Threading Issues, Pthreads, Linux Threads, Windows XP Threads | 3 |
+| **Week 6** | 09-Sep to 16-Sep | Inter Process Communication: Background, The Critical-Section Problem, Peterson's Solution, Synchronization Hardware, Semaphores, Classic Problems of Synchronization, Monitors, Synchronization Examples, Atomic Transactions | 4 |
+| **Week 7** | 17-Sep to 24-Sep | Deadlocks: Deadlock Characterization, Methods for Handling Deadlocks, Deadlock Prevention, Deadlock Avoidance, Deadlock Detection, Recovery from Deadlock | 3 |
+| **Week 8** | 25-Sep to 02-Oct | Memory Management: Background, Swapping, Contiguous Memory Allocation, Paging, Structure of Page Table, Types of Paging | 4 |
 
 ---
 
-## 1. Learning outcomes
+## Contents (full list of topics and subtopics)
 
-After studying these notes, you should be able to:
+### Week 5 — Threads
+- **5.1 Processes vs. Threads** — 5.1.1 The 4-CPU scenario · 5.1.2 Method 1: four processes · 5.1.3 Method 2: four threads · 5.1.4 Process vs thread (comparison) · 5.1.5 What is a thread · 5.1.6 Single-threaded and multithreaded processes · 5.1.7 Merits of using threads · 5.1.8 Thread scheduling · 5.1.9 Threads: pros and cons
+- **5.2 User vs. Kernel Threads** — 5.2.1 Types of threads · 5.2.2 Thread management · 5.2.3 ULT states and process states · 5.2.4 Merits and demerits of ULT (Jacketing) · 5.2.5 Merits and demerits of KLT · 5.2.6 ULT vs KLT table
+- **5.3 Multithreading Models** — 5.3.1 Many-to-One · 5.3.2 One-to-One · 5.3.3 Many-to-Many · 5.3.4 Comparison
+- **5.4 Threading Issues** — 5.4.1 fork(), exec(), exit() · 5.4.2 Signal handling · 5.4.3 Thread pools · 5.4.4 Thread safety · 5.4.5 How to ensure thread safety · 5.4.6 Thread-specific data
+- **5.5 Pthreads** — 5.5.1 Thread libraries · 5.5.2 POSIX Pthreads · 5.5.3 The pthread library calls · 5.5.4 Example program · 5.5.5 Terminating a thread · 5.5.6 Thread cancellation
+- **5.6 Linux Threads**
+- **5.7 Windows XP Threads**
 
-- explain the 4-CPU summation scenario and why threads are better than multiple processes;
-- define a thread, list what each thread owns and what it shares, and contrast threads with processes;
-- state the merits of threads and how threads are scheduled;
-- compare user-level and kernel-level threads, with merits, demerits, and jacketing, and explain ULT states vs process states;
-- draw and explain the One-to-One, Many-to-One, and Many-to-Many models;
-- use the Pthreads API (`pthread_self`, `pthread_create`, `pthread_join`, `pthread_exit`, `pthread_cancel`) and explain thread termination and cancellation;
-- explain the threading issues: `fork()`/`exec()`, signal handling, thread pools, thread safety, and thread-specific data;
-- describe Windows XP threads (ETHREAD, KTHREAD, TEB) and Linux threads (`clone()` flags);
-- define a race condition and the critical-section problem with its three requirements;
-- trace Peterson's solution and the hardware solutions (test_and_set, compare_and_swap, bounded-waiting test_and_set);
-- define semaphores, implement them with and without busy waiting, and use them for the classical problems;
-- explain monitors, condition variables, and the monitor solution to dining philosophers;
-- define deadlock, state the four necessary conditions, and analyse a resource-allocation graph;
-- apply prevention, avoidance (safe state, Banker's algorithm), detection (wait-for graph, detection algorithm), and recovery;
-- solve Banker's-algorithm and deadlock-detection numericals step by step.
+### Week 6 — Inter Process Communication
+- **6.1 Background** — 6.1.1 Why synchronization is needed · 6.1.2 Producer–consumer · 6.1.3 Race condition
+- **6.2 The Critical-Section Problem** — 6.2.1 Definition · 6.2.2 General structure · 6.2.3 A simple lock picture and the `turn` algorithm · 6.2.4 Three requirements · 6.2.5 Critical-section handling in the OS
+- **6.3 Peterson's Solution**
+- **6.4 Synchronization Hardware** — 6.4.1 Locks · 6.4.2 test_and_set · 6.4.3 compare_and_swap · 6.4.4 Bounded-waiting mutual exclusion with test_and_set
+- **6.5 Semaphores** — 6.5.1 Definition · 6.5.2 Usage · 6.5.3 Implementation and busy waiting · 6.5.4 Implementation with no busy waiting · 6.5.5 Deadlock, starvation, priority inversion
+- **6.6 Classic Problems of Synchronization** — 6.6.1 Bounded-buffer · 6.6.2 Readers–writers · 6.6.3 Dining philosophers
+- **6.7 Monitors** — 6.7.1 Problems with semaphores · 6.7.2 Monitor · 6.7.3 Condition variables · 6.7.4 Condition-variable choices · 6.7.5 Dining philosophers using a monitor · 6.7.6 Monitor implementation using semaphores · 6.7.7 Resuming processes within a monitor · 6.7.8 Single-resource allocation
+- **6.8 Synchronization Examples**
+- **6.9 Atomic Transactions**
+
+### Week 7 — Deadlocks
+- **7.1 Resources and the Deadlock Problem** — 7.1.1 Resources · 7.1.2 The deadlock problem · 7.1.3 When do deadlocks happen · 7.1.4 Formal definition · 7.1.5 Deadlock with semaphores
+- **7.2 Deadlock Characterization** — 7.2.1 Four conditions · 7.2.2 Resource-allocation graph · 7.2.3 Basic facts
+- **7.3 Methods for Handling Deadlocks**
+- **7.4 Deadlock Prevention**
+- **7.5 Deadlock Avoidance** — 7.5.1 Safe state · 7.5.2 Avoidance algorithms · 7.5.3 Modified resource-allocation graph · 7.5.4 Banker's algorithm · 7.5.5 Banker's example · 7.5.6 Safe and unsafe state examples
+- **7.6 Deadlock Detection** — 7.6.1 Single instance (wait-for graph) · 7.6.2 Several instances · 7.6.3 Example · 7.6.4 Detection-algorithm usage · 7.6.5 Question
+- **7.7 Recovery from Deadlock** — 7.7.1 Process termination · 7.7.2 Resource preemption
+- **7.8 Advantages and Disadvantages of the Approaches**
+
+### Week 8 — Memory Management
+- **8.1 Background** — 8.1.1 Basics · 8.1.2 Base and limit registers · 8.1.3 Address binding · 8.1.4 Logical, relative, physical addresses · 8.1.5 MMU and dynamic relocation · 8.1.6 Dynamic loading · 8.1.7 Dynamic linking
+- **8.2 Swapping**
+- **8.3 Contiguous Memory Allocation** — 8.3.1 Fixed partitioning · 8.3.2 Dynamic partitioning · 8.3.3 Placement algorithms · 8.3.4 Buddy system
+- **8.4 Paging** — 8.4.1 Concept · 8.4.2 Internal fragmentation · 8.4.3 Address translation scheme · 8.4.4 Paging hardware and model · 8.4.5 Paging example · 8.4.6 Free frames
+- **8.5 Structure of Page Table** — 8.5.1 Page table · 8.5.2 Implementation (PTBR, PTLR, TLB) · 8.5.3 Effective memory access time · 8.5.4 Valid/invalid bit · 8.5.5 Shared pages
+- **8.6 Types of Paging** — 8.6.1 Hierarchical page tables · 8.6.2 Hashed page tables · 8.6.3 Inverted page table
 
 ---
+---
 
-## 2. Why threads: motivation
+# WEEK 5 — THREADS
 
-> **Source note:** sections 2 to 10 follow the slide order of `DOC-20260825-WA0000.pdf` (Threads lecture). `ch4.ppt` is used only to explain the points on those slides; no extra topics are added from it.
+## 5.1 Processes vs. Threads
 
-### 2.1 The 4-CPU summation scenario
+### 5.1.1 The 4-CPU scenario
 
-The lecture starts with a problem. A machine has **4 CPUs**. A program adds the numbers up to 10 million using one function `addall()`, and the whole process runs on **one CPU**.
+- The system has **4 CPUs**.
+- A program adds the numbers up to 10 million using one function `addall()`, and the whole process runs on **one CPU**.
+- **Problem:** the other three CPUs are not used at all, and the single process takes a long time to finish.
 
-```c
-#include <stdio.h>
+### 5.1.2 Method 1: four processes
 
-unsigned long addall() {
-    int i = 0;
-    unsigned long sum = 0;
-    while (i < 10000000) {
-        sum += i;
-        i++;
-    }
-    return sum;
-}
-
-int main() {
-    unsigned long sum;
-    srandom(time(NULL));
-    sum = addall();
-    printf("%lu\n", sum);
-}
-```
-
-**Problem:** the other processors are not utilized, and the single process takes a long time to complete execution.
-
-### 2.2 Better method: four processes
-
-![Slide: four processes, one per CPU](assets/doc-p03-four-processes.png)
-
-- Create **4 processes** so that each process adds **2.5 million** numbers.
+- Create **4 processes**, each adding **2.5 million** numbers.
 - This needs **4 `fork()` calls**.
-- Each process can execute on **one processor**, which reduces the computation time.
+- Each process can run on its own CPU, so the computation time goes down.
 
-**But:**
+**But there are problems:**
+- Each process has its **own instructions, data, heap and stack**.
+- A large part of these 4 processes is **the same**, so there is a lot of **duplication** of instructions and data.
+- **Process management and IPC** (inter-process communication) are required.
 
-- each process has its **own set of instructions, data, heap, and stack**;
-- a **large portion of these 4 processes is similar**;
-- so there is **a lot of duplication** of instructions and data;
-- **process management and IPC** are also required.
+### 5.1.3 Method 2: four threads
 
-The slide sums this up as **significant overheads — can we do better?**
-
-### 2.3 Even better: four threads in one process
-
-![Slide: four threads in one process](assets/doc-p04-four-threads.png)
-
-- Create **4 threads under 1 process**, using **Pthreads**.
-- Each thread executes on a **separate processor**.
+- Create **4 threads under 1 process** using **Pthreads**.
+- Each thread runs on a **separate CPU**.
 - The threads **share** the common instructions, parameters, heap, etc.
-- However, **each thread has a separate stack**.
+- But **each thread has its own stack**.
 - Each thread adds **2.5 million** numbers.
 - **Threads are lighter than processes.**
 - **Very few or no system calls** are needed to create threads.
 
-| Attempt | What is done | Result |
-|---|---|---|
-| **1. One process** | One process on one CPU | Other CPUs sit idle; slow |
-| **2. Four processes** | 4 `fork()` calls; each adds 2.5 million numbers | Faster, but heavy duplication; process management and IPC needed |
-| **3. Four threads** | 4 Pthreads in one process; each adds 2.5 million numbers | Faster and light: only the stack is separate per thread |
+### 5.1.4 Process vs thread (comparison from the slides)
 
-```mermaid
-flowchart LR
-    subgraph A["Four processes (heavy)"]
-        P1["Process 1<br/>code+data+heap+stack"] --> C1["CPU 1"]
-        P2["Process 2<br/>code+data+heap+stack"] --> C2["CPU 2"]
-        P3["Process 3<br/>code+data+heap+stack"] --> C3["CPU 3"]
-        P4["Process 4<br/>code+data+heap+stack"] --> C4["CPU 4"]
-    end
-    subgraph B["One process, four threads (light)"]
-        PR["Shared code + data + heap"] --- T1["T1 stack"] --> D1["CPU 1"]
-        PR --- T2["T2 stack"] --> D2["CPU 2"]
-        PR --- T3["T3 stack"] --> D3["CPU 3"]
-        PR --- T4["T4 stack"] --> D4["CPU 4"]
-    end
-```
+| Point | 4 Processes | 4 Threads in 1 Process |
+| --- | --- | --- |
+| What is copied/kept | Each has its own instructions, data, heap, stack | Instructions, parameters, heap shared; only the **stack is separate** |
+| Creation | 4 `fork()` calls | Very few or no system calls |
+| Communication | Process management and IPC required | Threads share data, so no IPC needed |
+| Weight | Heavyweight | **Lighter** than processes |
 
-The program that does this is given in [section 6.4](#64-lecture-example-four-thread-summation).
+### 5.1.5 What is a thread
 
----
-
-## 3. Thread concept
-
-### 3.1 Threads and the Thread Control Block
-
-![Slide: threads share data, files and code; each has its own registers and stack](assets/doc-p05-thread-tcb.png)
-
-> **Thread:** a separate stream of execution within a single process. (`ch4.ppt` also calls it the basic unit of CPU utilization.)
-
+- A **thread** is a **separate stream of execution within a single process**.
 - Threads of one process are **not isolated** from each other (they share the process's memory).
-- The state of a thread is stored in a **Thread Control Block (TCB)**, which contains its **registers and stack**.
-- Threads provide a mechanism to perform **multiple tasks concurrently**.
-- Each thread has associated with it:
-  - a **thread ID**,
-  - a **program counter**,
-  - a **register set**,
-  - a **stack**.
+- The state of a thread is stored in the **Thread Control Block (TCB)**, which contains its **registers and stack**.
+- Threads give a way to perform **multiple tasks concurrently**.
+- Each thread has: **Thread ID**, **Program counter**, **Register set**, **Stack**.
 
-| Private to each thread | Shared by all threads of the process |
-|---|---|
-| Thread ID | Code |
-| Program counter | Data |
-| Register set | Files |
-| Stack | |
+### 5.1.6 Single-threaded and multithreaded processes
 
-### 3.2 Single-threaded and multithreaded processes
+- **Single-threaded process:** one set of code, data, files, registers and stack — one flow of control. It is called a **heavyweight process**.
+- **Multithreaded process:** code, data and files are **shared**, but each thread has its **own registers and stack**. It is called a **lightweight process**.
 
-![Slide: single and multithreaded processes](assets/ch4-p05-single-vs-multithreaded.png)
-
-- A **single-threaded process** has one set of registers and one stack. The lecture calls it a **heavyweight process**.
-- In a **multithreaded process**, code, data, and files are shared, while each thread has its own registers and stack. The lecture calls this a **lightweight process**.
-
-```mermaid
-flowchart LR
-    subgraph ST["Single-threaded process (heavyweight)"]
-        direction TB
-        A1["code | data | files"]
-        A2["registers | stack"]
-        A3["one thread"]
-    end
-    subgraph MT["Multithreaded process (lightweight)"]
-        direction TB
-        B1["code | data | files (shared)"]
-        subgraph TH["per-thread"]
-            direction LR
-            X1["registers<br/>stack<br/>thread 1"]
-            X2["registers<br/>stack<br/>thread 2"]
-            X3["registers<br/>stack<br/>thread 3"]
-        end
-    end
+```
+Single-threaded (heavyweight)        Multithreaded (lightweight)
+┌──────────────────────────┐         ┌──────────────────────────────────────┐
+│ code | data | files      │         │ code | data | files   (shared)       │
+│ registers | stack        │         │ regs | regs | regs    (one per thread)│
+│ one thread               │         │ stack| stack| stack   (one per thread)│
+└──────────────────────────┘         └──────────────────────────────────────┘
 ```
 
-### 3.3 Threads vs processes
-
-| Thread | Process |
-|---|---|
-| Has **no** data segment or heap of its own | Has code, heap, stack, and other segments |
-| Cannot live on its own; must be **attached to a process** | Has **at least one** thread |
-| There can be more than one thread in a process; **each thread has its own stack** | Threads within a process **share the same code and files** |
-| If a thread dies, **its stack is reclaimed** | If a process dies, **all its threads die** |
-
-### 3.4 Merits of using threads
+### 5.1.7 Merits of using threads
 
 - Threads can be **created and destroyed quickly** compared with processes.
-- Applications can use threads to execute some functions **in the background**.
+- Applications can use threads to run some functions **in the background**.
 - Threads can **share the same address space**.
-- It takes **less time to switch between threads** because of the smaller state record.
+- **Switching between threads takes less time**, because the state record to save is smaller.
 
-> **Explanation (`ch4.ppt`):** process creation is heavy-weight while thread creation is light-weight, and thread switching has lower overhead than a full context switch between processes.
+### 5.1.8 Thread scheduling
 
-### 3.5 Thread scheduling
+- Threads are scheduled on the CPU **independently**.
+- The state of each executing thread is kept **separately**.
+- If a process is **suspended**, **all its threads are suspended**.
+- If a process is **terminated**, **all its threads are terminated**.
+- A thread also has states like **ready, running, waiting (blocked)**.
 
-- Threads are scheduled to execute on the CPU **independently**.
-- The state of each executing thread is maintained **separately**.
-- If a process is **suspended**, all its threads are suspended.
-- If a process is **terminated**, all its threads are terminated.
-- A thread also has states like **ready, running, waiting or blocked**.
+### 5.1.9 Threads: pros and cons
+
+| Advantages of multithreading | Disadvantages of multithreading |
+| --- | --- |
+| Easy to share resources | Threads compete for acquiring memory |
+| Faster to create | Thread safety must be ensured |
+| | An error in one thread can disturb the other threads because resources are shared |
+
+**Considerations for future design:** handling signals is tricky; all threads must run the same program.
 
 ---
 
-## 4. User-level and kernel-level threads
+## 5.2 User vs. Kernel Threads
 
-### 4.1 Types of threads
+### 5.2.1 Types of threads
 
-There are two types of threads: **User-Level Threads (ULT)** and **Kernel-Level Threads (KLT)**.
+There are two types: **User-Level Threads (ULT)** and **Kernel-Level Threads (KLT)**.
 
-> **Note from the lecture:** this is about threads for *user* processes. Both ULTs and KLTs execute in user mode. An OS may also have its own threads, but that is not what is discussed here.
+> **Note (from the slide):** this is about threads for *user processes*. Both ULTs and KLTs execute in user mode. An OS may have its own threads, but that is not being discussed here.
 
-### 4.2 Threads management
+### 5.2.2 Thread management
 
-![Slide: pure user-level, pure kernel-level, and combined](assets/doc-p11-ult-klt-combined.png)
+| User-Level Threads (ULTs) | Kernel-Level Threads (KLTs) |
+| --- | --- |
+| Managed by **applications and a user-level thread library** | **Created and managed by the kernel** |
+| The **kernel is not aware** of these threads | Also called **lightweight processes** |
 
-**User-Level Threads (ULTs)**
+### 5.2.3 Relationship between ULT states and process states
 
-- Managed by **applications and a user-level thread library**.
-- The **kernel is not aware** of these threads.
+With ULTs, the kernel only sees the **process**; the thread library decides which **thread** runs. So a thread's state and the process state can look different. The slide shows Process B with Thread 1 and Thread 2 in four situations:
 
-**Kernel-Level Threads (KLTs)**
+| Case | Thread 1 | Thread 2 | Process B | What it means |
+| --- | --- | --- | --- | --- |
+| (a) | Ready | **Running** | **Running** | Normal case: thread 2 is running inside the running process |
+| (b) | Ready | Running (library's view) | **Blocked** | Thread 2 made a blocking system call (like I/O). The kernel blocks the **whole process**. The library still shows thread 2 as "running" |
+| (c) | Ready | Running (library's view) | **Ready** | Time slice of the process ended (clock interrupt). The process goes to Ready; thread 2 is still "running" in the library's view |
+| (d) | **Running** | **Blocked** | **Running** | Thread 2 must wait for thread 1, so the library blocks thread 2 and runs thread 1. The kernel sees no change; the process keeps running |
 
-- **Created and managed by the kernel.**
-- Also called **lightweight processes**.
+**Key idea:** a ULT shown as "Running" is really executing only when its process is also "Running".
 
-![Slide (ch4): user threads and kernel threads](assets/ch4-p15-user-kernel-threads.png)
-
-The DOC diagram shows three arrangements:
-
-| Arrangement | What happens |
-|---|---|
-| **(a) Pure user-level** | All threads live in the threads library in user space; the kernel sees only the process `P` |
-| **(b) Pure kernel-level** | Every thread is a kernel-level thread; there is no thread library layer |
-| **(c) Combined** | The threads library maps user-level threads onto kernel-level threads |
-
-> **Explanation (`ch4.ppt`):** virtually all general-purpose operating systems support kernel threads, for example Windows, Linux, and Mac OS X.
-
-### 4.3 Relationship between ULT states and process states
-
-![Slide: relationships between ULT states and process states](assets/doc-p12-ult-states.png)
-
-With pure user-level threads the kernel schedules the **process**, while the library schedules the **threads**. So a thread's state and its process's state can look inconsistent. The slide (from Stallings, Ref. 2) shows process B with two threads:
-
-| Case | Thread 1 | Thread 2 | Process B | What happened |
-|---|---|---|---|---|
-| (a) | Ready | **Running** | **Running** | Normal starting point: thread 2 is running inside running process B |
-| (b) | Ready | Running (as the library sees it) | **Blocked** | Thread 2 made a blocking system call (for example I/O). The kernel blocks the whole process. The library still records thread 2 as "running" although it is not actually executing. |
-| (c) | Ready | Running (as the library sees it) | **Ready** | A clock interrupt: process B used up its time slice and is moved to Ready. Thread 2 is still "running" in the library's view. |
-| (d) | **Running** | **Blocked** | **Running** | Thread 2 needs something from thread 1, so the library blocks thread 2 and runs thread 1. The process itself keeps running; the kernel sees no change. |
-
-> **Key point:** with ULTs, a thread marked *Running* is only really executing when its process is also *Running*.
-
-### 4.4 Merits and demerits of ULT
-
-![Slide: ULT — thread table inside each process, run-time system in user space](assets/doc-p13-ult-thread-table.png)
+### 5.2.4 Merits and demerits of ULT
 
 **Merits (+)**
-
-- Can be implemented on an OS that **does not support threading**.
+- Can be implemented in an OS that **does not support threading**.
 - **Fast creation and switching.**
 - **Does not need a system call.**
 
 **Demerits (−)**
+- A process with many threads still **competes like one single-threaded process**.
+- Scheduling decisions **cannot favour** processes with a larger number of threads.
+- If **one thread makes a system call, all other threads get blocked**.
 
-- A process with many threads still **competes as one unit** with a single-threaded process.
-- Scheduling decisions **cannot favour processes with a larger number of threads**.
-- If one thread makes a **system call, all the other threads get blocked**.
+**Solution — Jacketing:** it **converts a blocking system call into a non-blocking system call**.
 
-> **Solution — Jacketing:** converts a **blocking system call into a non-blocking system call**.
+*(The slide figure shows two processes in user space, each with its own **run-time system** and **thread table**; the kernel has only the **process table**. That is why the kernel does not know about the threads.)*
 
-The diagram shows why: the **thread table** and **run-time system** sit inside each process in user space, while the kernel only has a **process table**. The kernel does not know the threads exist.
-
-### 4.5 Merits and demerits of KLT
-
-![Slide: KLT — thread table and process table in the kernel](assets/doc-p14-klt-thread-table.png)
+### 5.2.5 Merits and demerits of KLT
 
 **Merits (+)**
-
 - The **thread table is stored in kernel space**, so the kernel knows how many threads a process has.
 - The OS can give **more time quantum** to a process with a large number of threads.
 - Better for applications that **frequently block**.
-- One thread making a system call **does not block the others**.
+- **One thread making a system call does not block the others.**
 
 **Demerits (−)**
-
 - **Slow.**
-- **Larger overhead** due to kernel-level management.
-- Transferring control from one thread to another within the same process requires a **mode switch to the kernel**.
+- **Larger overhead** because of kernel-level management.
+- Moving control from one thread to another in the same process needs a **mode switch to the kernel**.
 
-### 4.6 Comparison table
+### 5.2.6 ULT vs KLT
 
-| Aspect | User-Level Threads (ULT) | Kernel-Level Threads (KLT) |
-|---|---|---|
-| Managed by | Application and user-level thread library | Kernel |
-| Kernel awareness | Kernel is not aware | Kernel knows every thread (thread table in kernel) |
-| Creation and switching | Fast; no system call | Slow; needs a mode switch to the kernel |
-| Blocking system call | Blocks all threads of the process | Blocks only that thread |
-| Scheduling | Cannot favour processes with many threads | Can give more time quantum to processes with many threads |
-| OS support needed | None; works even if the OS does not support threading | OS must support threads |
-| Fix for main weakness | Jacketing | — |
+| Point | User-Level Threads | Kernel-Level Threads |
+| --- | --- | --- |
+| Managed by | Application + user-level thread library | Kernel |
+| Kernel aware? | No | Yes (thread table in kernel space) |
+| Creation / switching | Fast, no system call | Slow, needs mode switch to kernel |
+| One thread makes a system call | All threads block | Other threads are not blocked |
+| Scheduling | Cannot favour processes with more threads | Can give more time quantum to such processes |
+| OS support needed | Works even on an OS without thread support | OS must support threads |
+| Main weakness / fix | Blocking calls — fix is **Jacketing** | Slow, larger overhead |
 
 ---
 
-## 5. Multithreading models
+## 5.3 Multithreading Models
 
-The lecture lists three models: **One-to-One, Many-to-One, Many-to-Many**. A model describes how user threads are mapped to kernel threads.
+A model shows **how user threads are connected to kernel threads**. The three models are **One-to-One, Many-to-One, Many-to-Many**.
 
-### 5.1 Many-to-One
+### 5.3.1 Many-to-One
+- **Many user-level threads are mapped to a single kernel thread.**
 
-![Slide: many-to-one model](assets/ch4-p17-many-to-one.png)
-
-**Many user-level threads are mapped to a single kernel thread.**
-
-```mermaid
-flowchart TB
-    U1(("user")) --> K(("kernel thread"))
-    U2(("user")) --> K
-    U3(("user")) --> K
-    U4(("user")) --> K
+```
+user  user  user  user
+  \    |    |    /
+     kernel thread
 ```
 
-> **Explanation (`ch4.ppt`):** one thread blocking causes all to block, and the threads may not run in parallel on a multicore system because only one may be in the kernel at a time. Few systems currently use this model. Examples: Solaris Green Threads, GNU Portable Threads.
-
-### 5.2 One-to-One
-
-![Slide: one-to-one model](assets/ch4-p18-one-to-one.png)
-
-**Each user-level thread maps to a kernel thread.**
-
-```mermaid
-flowchart TB
-    U1(("user")) --> K1(("kernel"))
-    U2(("user")) --> K2(("kernel"))
-    U3(("user")) --> K3(("kernel"))
-    U4(("user")) --> K4(("kernel"))
-```
-
+### 5.3.2 One-to-One
+- **Each user-level thread maps to one kernel thread.**
 - Examples: **Windows NT/XP/2000**, **Linux**.
 
-> **Explanation (`ch4.ppt`):** creating a user-level thread creates a kernel thread, which gives more concurrency than many-to-one. The number of threads per process is sometimes restricted because of this overhead.
-
-### 5.3 Many-to-Many
-
-![Slide: many-to-many model](assets/ch4-p19-many-to-many.png)
-
-- **Many user-level threads are mapped to many kernel threads.**
-- It allows the operating system to **create a sufficient number of kernel threads**.
-- Example: **Windows NT/2000** (`ch4.ppt`: with the ThreadFiber package).
-
-```mermaid
-flowchart TB
-    U1(("user")) --> M["mapping"]
-    U2(("user")) --> M
-    U3(("user")) --> M
-    U4(("user")) --> M
-    M --> K1(("kernel"))
-    M --> K2(("kernel"))
-    M --> K3(("kernel"))
+```
+user   user   user   user
+ |      |      |      |
+kernel kernel kernel kernel
 ```
 
-### 5.4 Comparison
+### 5.3.3 Many-to-Many
+- **Many user-level threads are mapped to many kernel threads.**
+- It allows the OS to **create a sufficient number of kernel threads**.
+- Example: **Windows NT/2000**.
 
-| Model | Mapping | Blocking call | Parallel on multicore? | Examples |
-|---|---|---|---|---|
-| **Many-to-One** | N user : 1 kernel | Blocks all threads | No | Solaris Green Threads, GNU Portable Threads |
-| **One-to-One** | 1 user : 1 kernel | Blocks only that thread | Yes | Windows NT/XP/2000, Linux |
-| **Many-to-Many** | N user : M kernel | Kernel can run another thread | Yes | Windows NT/2000 (ThreadFiber) |
+```
+user  user  user  user
+   \    |    |    /
+  kernel  kernel  kernel
+```
+
+### 5.3.4 Comparison
+
+| Model | Mapping | Example (from slides) |
+| --- | --- | --- |
+| Many-to-One | many user : 1 kernel | — |
+| One-to-One | 1 user : 1 kernel | Windows NT/XP/2000, Linux |
+| Many-to-Many | many user : many kernel | Windows NT/2000 |
 
 ---
 
-## 6. Thread libraries
+## 5.4 Threading Issues
 
-### 6.1 Overview
+The slide lists five issues: **(1) use of fork() and exec(), (2) signal handling, (3) thread pools, (4) thread safety, (5) thread-specific data.**
 
-- A thread library provides the programmer with an **API for creating and managing threads**.
-- Two primary ways of implementing it:
-  1. a library **entirely in user space**;
-  2. a **kernel-level library** supported by the OS.
-- Three main thread libraries in use today: **POSIX Pthreads**, **Win32**, **Java**.
+### 5.4.1 Use of fork(), exec(), exit()
+- **Question:** does `fork()` duplicate **only the calling thread** or **all threads**?
+- A few UNIX systems keep **two versions of `fork()`** so that both options are available.
+- **`exec()`:** the program given in the parameter of `exec()` **replaces the entire process, including all threads**.
+- **Recommendation:** in a process with multiple threads, use `fork()` only together with `exec()` (the slide says "use fork() only after exec()").
 
-> **Explanation (`ch4.ppt`):** with a user-space library, calling a library function is a local function call; with a kernel-level library, it results in a system call.
+### 5.4.2 Signal handling
+- **Signals** are used to **tell a process about an event**.
+- A **signal handler** processes signals in three steps:
+  1. A signal is **generated** by a particular event.
+  2. The signal is **delivered** to a process.
+  3. The signal is **handled**.
+- **Signal delivery options** in a multithreaded process:
+  - to the **intended thread**,
+  - to **every thread** in the intended process,
+  - to **certain threads** in the process,
+  - **assign one specific thread** to receive all signals for the process.
 
-### 6.2 POSIX Pthreads
+### 5.4.3 Thread pools
+- **Create and keep** a number of threads in a **pool**.
+- **Give work** to the threads as needed.
+- It is a **faster** way to handle a request: use an **existing thread** instead of creating a new one.
+- It **limits the number of threads** in the application(s) to the size of the pool.
 
-- It can be used on **Linux** systems.
-- Programs using the Pthreads API must be compiled with **`-pthread`** or **`-lpthread`**.
+### 5.4.4 Thread safety
+A function is **thread-safe** when it can be called by **many threads at the same time without causing any disturbance**.
+
+Example of a function that is **not** thread-safe:
+
+```c
+static int glob = 0;
+
+static void Incr(int loops) {
+    int loc, j;
+    for (j = 0; j < loops; j++) {
+        loc = glob;      // read the shared value
+        loc++;           // change the local copy
+        glob = loc;      // write it back
+    }
+}
+```
+
+It uses **global or static values that are shared by all threads**. Two threads can read the same `glob`, both add one, and write back the same value — so one update is lost.
+
+### 5.4.5 How to ensure thread safety
+1. **Serialize the function** — keep the critical section **locked** so only one thread uses it at a time and the others stay out.
+2. Use only **thread-safe system functions**.
+3. **Avoid global and static variables.**
+
+### 5.4.6 Thread-specific data
+- Makes existing functions **thread-safe**.
+  - May be slightly **less efficient than being reentrant**.
+- Lets **each thread have its own copy of data** — **per-thread storage** for a function.
+- Useful when you **do not control how threads are created** (for example, when using a **thread pool**).
+
+---
+
+## 5.5 Pthreads
+
+### 5.5.1 Thread libraries
+- A thread library gives the programmer an **API for creating and managing threads**.
+- Two main ways to implement it: a library **entirely in user space**, or a **kernel-level library** supported by the OS.
+- Three main thread libraries in use today: **POSIX Pthreads, Win32, Java**.
+
+### 5.5.2 POSIX Pthreads
+- Can be used on **Linux** systems.
+- A program using the Pthreads API must be compiled with **`-pthread`** or **`-lpthread`**.
 
 ```c
 #include <pthread.h>
-
-pthread_t pthread_self();    /* returns: ID of the current (this) thread */
+pthread_t pthread_self();   // returns the ID of the current (this) thread
 ```
 
-> **Explanation (`ch4.ppt`):** Pthreads is a POSIX standard (IEEE 1003.1c) API for thread creation and synchronization. It is a **specification, not an implementation**, and is common in UNIX operating systems such as Linux and Mac OS X.
+### 5.5.3 The pthread library calls
 
-### 6.3 The pthread library calls
+| Purpose | Call | Meaning of parameters |
+| --- | --- | --- |
+| **Create** a thread in a process | `int pthread_create(pthread_t *thread, const pthread_attr_t *attr, void *(*start_routine)(void *), void *arg);` | `thread` = thread identifier (TID); `attr` = attributes; `start_routine` = pointer to the function that starts running in the new thread; `arg` = argument to that function |
+| **Destroy** (end) a thread | `void pthread_exit(void *retval);` | `retval` = value returned |
+| **Join** — wait for a specific thread to complete | `int pthread_join(pthread_t thread, void **retval);` | `thread` = TID of the thread to wait for; `retval` = exit status of that thread |
 
-![Slide: pthread library calls](assets/doc-p21-pthread-library.png)
-
-| Call | Purpose | Parameters |
-|---|---|---|
-| `int pthread_create(pthread_t *thread, const pthread_attr_t *attr, void *(*start_routine)(void *), void *arg);` | **Create** a thread in a process | `thread` receives the thread identifier (TID); `attr` gives attributes; `start_routine` is a pointer to the function that starts executing in the new thread; `arg` is the argument to that function |
-| `void pthread_exit(void *retval);` | **Destroy** (terminate) the calling thread | `retval` is the value returned |
-| `int pthread_join(pthread_t thread, void **retval);` | **Join:** wait for a specific thread to complete | `thread` is the TID to wait for; `retval` receives its exit status |
-| `pthread_t pthread_self();` | Get the ID of the calling thread | — |
-
-```mermaid
-sequenceDiagram
-    participant M as main thread
-    participant W as new thread
-    M->>W: pthread_create(&tid, NULL, thread_fn, arg)
-    Note over W: runs thread_fn(arg)
-    M->>M: pthread_join(tid, NULL) — waits
-    W-->>M: returns / pthread_exit(retval)
-    Note over M: continues
-```
-
-### 6.4 Lecture example: four-thread summation
-
-This program solves the scenario in [section 2.1](#21-the-4-cpu-summation-scenario).
+### 5.5.4 Example program: four-thread sum
+This is the program for the 4-CPU scenario in 5.1.
 
 ```c
 #include <pthread.h>
@@ -489,9 +356,8 @@ unsigned long sum[4];
 
 void *thread_fn(void *arg) {
     long id = (long) arg;
-    int start = id * 2500000;      /* each thread handles its own quarter */
+    int start = id * 2500000;
     int i = 0;
-
     while (i < 2500000) {
         sum[id] += (i + start);
         i++;
@@ -517,278 +383,134 @@ int main() {
 }
 ```
 
-Note: you need to **link the pthread library**.
-
-```text
+**Note (from the slide):** you need to **link the pthread library**:
+```
 $ gcc threads.c -lpthread
 $ ./a.out
 ```
 
-**How it works:**
+**How it works (simple):**
+- `sum[4]` is global, so all threads can see it, and each thread writes only to **its own slot** `sum[id]`.
+- The number `0–3` passed as `arg` tells each thread which quarter of the numbers to add.
+- `main` **joins** all four threads first, and only then adds the four partial sums.
 
-- `sum[4]` is a global array, so all four threads can see it; each thread writes only to **its own slot** `sum[id]`, so they never interfere.
-- The thread number (0–3) is passed as the argument; thread `id` adds the numbers from `id × 2500000` to `id × 2500000 + 2499999`.
-- `main` **joins** all four threads before adding the four partial sums, so it never prints an incomplete result.
-
-### 6.5 Terminating a thread
-
+### 5.5.5 Terminating a thread
 ```c
 #include <pthread.h>
-
 void pthread_exit(return_value);
 ```
+A thread terminates in one of these cases:
+1. It **completes its function** and returns a value.
+2. A **`pthread_cancel()` request** is received by the thread.
+3. The **thread itself starts termination** (`pthread_exit`).
+4. The **process of the threads terminates**.
 
-Threads terminate in one of the following conditions:
+### 5.5.6 Thread cancellation
+- **`pthread_cancel()`** terminates a thread **before it has completed its execution**.
+- Whether the thread is cancelled depends on its **state** and **type**.
 
-1. the thread **completes its function** execution and returns a value;
-2. a **`pthread_cancel()`** request is received by the thread;
-3. the **thread itself initiates termination** (`pthread_exit`);
-4. the **process of the threads terminates**.
-
----
-
-## 7. Thread cancellation
-
-> **`pthread_cancel()`:** terminates a thread **before it has completed its execution**. (`ch4.ppt` calls the thread to be cancelled the **target thread**.)
-
-Whether a thread is actually cancelled depends on its **state** and **type**.
-
-### 7.1 Cancellation states
+**States**
 
 | State | Meaning |
-|---|---|
-| `PTHREAD_CANCEL_DISABLE` | The thread **cannot** be cancelled |
-| `PTHREAD_CANCEL_ENABLE` | **Default state.** The thread can be cancelled |
+| --- | --- |
+| `PTHREAD_CANCEL_DISABLE` | Thread **cannot** be cancelled |
+| `PTHREAD_CANCEL_ENABLE` | **Default state.** Thread **can** be cancelled |
 
-> **Explanation (`ch4.ppt`):** if cancellation is disabled, the request **remains pending** until the thread enables it.
+**Two types of cancellation**
 
-### 7.2 Cancellation types
-
-| Type | Behaviour | Pthreads constant |
-|---|---|---|
+| Type | Meaning | Constant |
+| --- | --- | --- |
 | **Asynchronous cancellation** | Terminates the target thread **immediately** | `PTHREAD_CANCEL_ASYNCHRONOUS` |
 | **Deferred cancellation** | The target thread **periodically checks** whether it should be cancelled; it is cancelled when it reaches a **cancellation point** | `PTHREAD_CANCEL_DEFERRED` |
 
-> **Explanation (`ch4.ppt`):** invoking `pthread_cancel()` only **requests** cancellation. The **default type is deferred**; a cancellation point can be created with `pthread_testcancel()`, after which a cleanup handler is invoked.
+---
 
-```c
-pthread_t tid;
-pthread_create(&tid, 0, worker, NULL);   /* create the thread      */
-...
-pthread_cancel(tid);                     /* request cancellation   */
-pthread_join(tid, NULL);                 /* wait for it to finish  */
-```
+## 5.6 Linux Threads
+
+- In Linux, threads are called **tasks**.
+- Tasks are created using the **`clone()` system call**.
+- `clone()` lets a child task **share the address space of the parent task (process)**.
 
 ---
 
-## 8. Threading issues
+## 5.7 Windows XP Threads
 
-The lecture lists five issues:
+- Windows XP uses a **one-to-one mapping** of threads with kernel-level threads.
+- Each thread contains:
+  - a **unique thread ID**,
+  - a **set of registers**,
+  - **separate user and kernel stacks**,
+  - a **private data storage area**.
+- These together are called the **context of the thread**.
+- The primary data structures of a thread are **ETHREAD** (executive thread block), **KTHREAD** (kernel thread block) and **TEB** (thread environment block).
 
-1. use of `fork()` and `exec()` system calls;
-2. signal handling;
-3. thread pools;
-4. thread safety;
-5. thread-specific data.
+**What the slide figure shows:**
 
-### 8.1 Use of fork(), exec(), exit()
+| Structure | Where | Contents shown in the figure |
+| --- | --- | --- |
+| **ETHREAD** | Kernel space | Thread start address, pointer to parent process, pointer to KTHREAD |
+| **KTHREAD** | Kernel space | Scheduling and synchronization information, kernel stack, pointer to TEB |
+| **TEB** | User space | Thread identifier, user stack, thread-local storage |
 
-- **Question:** does `fork()` duplicate **only the calling thread** or **all threads**?
-- A few UNIX systems keep **two versions of `fork()`** to have both options.
-- **`exec()`:** the program specified in the parameter to `exec()` **replaces the entire process, including all threads**.
-- **Recommendation (slide):** in a process with multiple threads, use `fork()` only together with `exec()` (the slide words it "use fork() only after exec()").
+---
+---
 
-> **Explanation (`ch4.ppt`):** if `exec()` is called immediately after forking, duplicating only the calling thread is enough, because `exec()` will replace everything anyway. If the child does not call `exec()`, all threads should be duplicated.
+# WEEK 6 — INTER PROCESS COMMUNICATION
 
-### 8.2 Signal handling
+## 6.1 Background
 
-- **Signals** are used to **notify a process about events**.
-- A **signal handler** processes signals in the following way:
-  1. a signal is **generated** by a particular event;
-  2. the signal is **delivered** to a process;
-  3. the signal is **handled**.
-- **Signal delivery options** in a multithreaded process:
-  - to the **intended thread** (the thread to which the signal applies);
-  - to **every thread** in the intended process;
-  - to **certain threads** in the process;
-  - **assign a specific thread** to receive all signals for the process.
+### 6.1.1 Why synchronization is needed
+- Processes can execute **concurrently**.
+- A process can be **interrupted at any moment**, even when it has only partly finished.
+- **Concurrent access to shared data may cause data inconsistency.**
+- A **mechanism is needed** to keep data consistent so that cooperating processes run in an orderly way.
 
-> **Explanation (`ch4.ppt`):** step 3 is done by either the **default** handler (run by the kernel) or a **user-defined** handler that overrides the default. For a single-threaded process the signal is simply delivered to the process; the question of *which thread* only arises with multiple threads.
+### 6.1.2 Producer–consumer
+- There is a **buffer of n slots**; each slot holds one unit of data.
+- Two processes work on it: **Producer** and **Consumer**.
+  - The producer tries to put data into an **empty** slot.
+  - The consumer tries to take data from a **filled** slot.
+  - The producer must **not insert when the buffer is full**.
+  - The consumer must **not remove when the buffer is empty**.
+  - They should **not insert and remove at the same time**.
 
-### 8.3 Thread pools
-
-- **Create and maintain** a number of threads in a **pool**.
-- **Assign work** to the threads as per the need.
-- It is a **faster** method to handle a request using an **existing thread** instead of creating a new one.
-- It **bounds the number of threads** in the application(s) to the size of the pool.
-
-> **Explanation (`ch4.ppt`):** the threads in the pool sit and **await work**; a request is handed to a free thread, and the thread goes back to the pool when it finishes.
-
-### 8.4 Thread safety
-
-> A function is called **thread-safe** when it can be called by **multiple threads at the same time without creating any disruptions**.
-
-Example of a function that is **not** thread-safe:
+A shared variable `count` keeps the number of filled slots (starts at 0).
 
 ```c
-static int glob = 0;
+// Producer
+int count = 0;
+void producer(void) {
+    int itemP;
+    while (1) {
+        Produce_item(itemP);
+        while (count == n);        // buffer full: wait
+        buffer[in] = itemP;
+        in = (in + 1) % n;
+        count = count + 1;
+    }
+}
 
-static void Incr(int loops) {
-    int loc, j;
-    for (j = 0; j < loops; j++) {
-        loc = glob;      /* read shared value   */
-        loc++;           /* modify local copy   */
-        glob = loc;      /* write back          */
+// Consumer
+void consumer(void) {
+    int itemC;
+    while (1) {
+        while (count == 0);        // buffer empty: wait
+        itemC = buffer[out];
+        out = (out + 1) % n;
+        count = count - 1;
     }
 }
 ```
 
-It **employs global or static values that are shared by all threads**. Two threads can read the same `glob`, both add one, and write back the same value, so one update is lost.
+`count = count + 1` is really **three machine steps**: `Load Rp, m[count]` → `Increment Rp` → `Store m[count], Rp`. In the same way, `count = count - 1` is `Load Rc` → `Decrement Rc` → `Store`.
 
-### 8.5 How to ensure thread safety
+### 6.1.3 Race condition
+`counter++` is done as `register1 = counter; register1 = register1 + 1; counter = register1`, and `counter--` as `register2 = counter; register2 = register2 - 1; counter = register2`.
 
-1. **Serialize the function:** keep the critical section of the code **locked** so that only one thread accesses it at a time, keeping other threads out.
-2. Use only **thread-safe system functions**.
-3. **Avoid the use of global and static variables.**
+Take `count = 5` at the start and this interleaving:
 
-### 8.6 Thread-specific data
-
-- Makes existing functions **thread-safe**.
-  - May be slightly **less efficient than being reentrant**.
-- Allows **each thread to have its own copy of data**.
-  - Provides **per-thread storage** for a function.
-- Useful when you **do not have control over the thread creation process** (for example, when using a **thread pool**).
-
-> **Explanation (`ch4.ppt`, where it is called thread-local storage):** this is different from local variables, which are visible only during one function call; thread-specific data is visible **across function calls**. It is similar to `static` data, except that it is **unique to each thread**.
-
----
-
-## 9. Threads: pros and cons
-
-| Advantages of multithreading | Disadvantages of multithreading |
-|---|---|
-| Easy to share resources | Threads compete for acquiring memory |
-| Faster to create | Thread safety must be ensured |
-| | An error in one thread can disrupt the execution of other threads, due to sharing of resources |
-
-**Considerations for future design:**
-
-- handling signals is tricky;
-- all threads must run the same program.
-
----
-
-## 10. Operating-system examples: Windows XP and Linux threads
-
-### 10.1 Windows XP threads
-
-![Slide: Windows thread data structures](assets/ch4-p61-windows-thread-structures.png)
-
-- Windows XP implements **one-to-one mapping** of threads, at kernel level.
-- Each thread contains:
-  - a **unique thread ID**;
-  - a **set of registers**;
-  - **separate user and kernel stacks**;
-  - a **private data storage area**.
-- These (register set, stacks, private storage area) are called the **context of the thread**.
-
-The primary data structures of a thread:
-
-| Structure | Full name | Contains | Lives in |
-|---|---|---|---|
-| **ETHREAD** | Executive thread block | Thread start address, pointer to the parent process, pointer to the KTHREAD | Kernel space |
-| **KTHREAD** | Kernel thread block | Scheduling and synchronization information, kernel stack, pointer to the TEB | Kernel space |
-| **TEB** | Thread environment block | Thread identifier, user stack, thread-local storage | User space |
-
-```mermaid
-flowchart LR
-    subgraph KSP["kernel space"]
-        E["ETHREAD<br/>thread start address<br/>pointer to parent process<br/>pointer to KTHREAD"] --> K["KTHREAD<br/>scheduling and synchronization info<br/>kernel stack<br/>pointer to TEB"]
-    end
-    subgraph USP["user space"]
-        T["TEB<br/>thread identifier<br/>user stack<br/>thread-local storage"]
-    end
-    K --> T
-```
-
-> **Explanation (`ch4.ppt`):** the user stack is used when the thread runs in user mode and the kernel stack when it runs in kernel mode; the private storage area is used by run-time libraries and DLLs.
-
-### 10.2 Linux threads
-
-- Threads are referred to as **tasks** in Linux.
-- Tasks are created using the **`clone()`** system call.
-- `clone()` allows a child task to **share the address space** of the parent task (process).
-
-| Flag | Meaning |
-|---|---|
-| `CLONE_FS` | File-system information is shared |
-| `CLONE_VM` | The same memory space is shared |
-| `CLONE_SIGHAND` | Signal handlers are shared |
-| `CLONE_FILES` | The set of open files is shared |
-
-> **Explanation (`ch4.ppt`):** the flags decide how much the child shares. With none of these flags, `clone()` behaves like `fork()` (a separate process); with all of them, the child is effectively a thread of the parent.
-
----
-
-## 11. Background and the race condition
-
-### 11.1 Why synchronization is needed
-
-- Processes can execute **concurrently**.
-- A process may be **interrupted at any moment**, even when it has only partly completed its work.
-- **Concurrent access to shared data may result in data inconsistency.**
-- A **mechanism is required** to maintain data consistency by ensuring the **orderly execution of cooperating processes**.
-
-### 11.2 Producer-consumer with a shared counter
-
-![Slide: producer-consumer buffer](assets/w6-1-p04-producer-consumer-buffer.png)
-
-There is a **buffer of n slots**, each slot holding one unit of data. Two processes operate on it: a **Producer** and a **Consumer**.
-
-- The producer tries to insert data into an **empty** slot.
-- The consumer tries to remove data from a **filled** slot.
-- The producer must **not insert when the buffer is full**.
-- The consumer must **not remove when the buffer is empty**.
-- The producer and consumer should **not insert and remove simultaneously**.
-
-To use **all** the buffer slots, keep an integer `counter` that tracks the number of full buffers. It starts at 0, is **incremented by the producer** and **decremented by the consumer**.
-
-```c
-/* Producer */
-while (true) {
-    /* produce an item in nextProduced */
-    while (counter == BUFFER_SIZE)
-        ;                               /* buffer full: do nothing */
-    buffer[in] = nextProduced;
-    in = (in + 1) % BUFFER_SIZE;
-    counter++;
-}
-
-/* Consumer */
-while (true) {
-    while (counter == 0)
-        ;                               /* buffer empty: do nothing */
-    nextConsumed = buffer[out];
-    out = (out + 1) % BUFFER_SIZE;
-    counter--;
-    /* consume the item in nextConsumed */
-}
-```
-
-### 11.3 Race condition
-
-`counter++` and `counter--` look like single statements, but each is three machine instructions:
-
-| `counter++` (producer) | `counter--` (consumer) |
-|---|---|
-| `register1 = counter` (load) | `register2 = counter` (load) |
-| `register1 = register1 + 1` (increment) | `register2 = register2 - 1` (decrement) |
-| `counter = register1` (store) | `counter = register2` (store) |
-
-Consider this interleaving with `counter = 5` initially:
-
-| Step | Who | Instruction | Result |
-|---|---|---|---|
+| Step | Who | Action | Value |
+| --- | --- | --- | --- |
 | S0 | producer | `register1 = counter` | register1 = 5 |
 | S1 | producer | `register1 = register1 + 1` | register1 = 6 |
 | S2 | consumer | `register2 = counter` | register2 = 5 |
@@ -796,160 +518,110 @@ Consider this interleaving with `counter = 5` initially:
 | S4 | producer | `counter = register1` | counter = 6 |
 | S5 | consumer | `counter = register2` | **counter = 4** |
 
-One item was produced and one consumed, so the correct value is **5**. The result is **4** (or 6 if S4 and S5 are swapped).
-
-> **Race condition:** several processes access and manipulate the same data concurrently, and the outcome depends on the **particular order** in which the accesses take place.
+One item was produced and one consumed, so the right answer is **5**, but we got **4**. This is a **race condition**: the result depends on the **order** in which the processes run their steps.
 
 ---
 
-## 12. The critical-section problem
+## 6.2 The Critical-Section Problem
 
-### 12.1 Definition
+### 6.2.1 Definition
+- Assume **n processes** `{p0, p1, …, pn-1}`.
+- Each process has a **critical section**, a part of code where it may change common variables, update a table, write into a file, etc.
+- **When one process is in its critical section, no other process may enter its critical section.**
+- The **critical-section problem** is to design an algorithm so that the processes can cooperate.
+- Each process must **take permission** to enter its critical section.
 
-- Consider a system of `n` processes `{P0, P1, …, Pn-1}`.
-- Each process has a segment of code called its **critical section**, in which it may be changing common variables, updating a table, writing a file, and so on.
-- **When one process is in its critical section, no other process may be in its critical section.**
-- The **critical-section problem** is to design a **protocol** (an algorithm) that the processes can use to cooperate.
-- Each process must **ask permission** to enter its critical section.
-- The problem is especially challenging with **preemptive kernels**.
-
-### 12.2 General structure
-
-![Slide: general structure of process Pi](assets/w6-1-p09-critical-section-structure.png)
+### 6.2.2 General structure of process Pi
 
 ```c
 do {
-    /* entry section     — ask permission to enter      */
+    entry section        // ask permission
         critical section
-    /* exit section      — announce that we have left   */
+    exit section         // announce leaving
         remainder section
 } while (true);
 ```
 
-| Section | Role |
-|---|---|
-| **Entry section** | Code that requests permission to enter |
-| **Critical section** | Code that accesses the shared data |
-| **Exit section** | Code that releases the permission |
-| **Remainder section** | Everything else |
+### 6.2.3 A simple lock picture and the `turn` algorithm
 
-### 12.3 First attempt: the turn variable
-
-![Slide: lock states for P1 and P2](assets/w6-1-p10-lock-states.png)
-
-The lecture first shows a simple lock picture using a variable `S` (`S = 1` means free):
+The slide shows the idea with a variable `S` (`S = 1` means the critical section is free):
 
 | State | P1 | P2 | S |
-|---|---|---|---|
-| 1 | Executing in non-critical section | Executing in non-critical section | 1 |
-| 2 | **Enters** critical section, sets `S = 0` | Executing in non-critical section | 0 |
-| 3 | Executing in critical section | Wants to enter but **cannot**, since `S = 0` | 0 |
-| 4 | Exits critical section, sets `S = 1` | Enters critical section as `S = 1`, sets `S = 0` | 1 → 0 |
+| --- | --- | --- | --- |
+| 1 | In non-critical section | In non-critical section | 1 |
+| 2 | **Enters** critical section, sets `S = 0` | In non-critical section | 0 |
+| 3 | Executing in critical section | Wants to enter but **cannot**, as `S = 0` | 0 |
+| 4 | Leaves critical section, sets `S = 1` | Enters critical section (as `S = 1`) and sets `S = 0` | 1 → 0 |
 
-Then a first software algorithm that uses a shared variable `turn`:
+**Algorithm for process Pi (shared variable `turn`):**
 
 ```c
-/* Algorithm for process Pi (the other process is Pj) */
 do {
-    while (turn == j)
-        ;                       /* wait while it is the other's turn */
+    while (turn == j);      // wait while it is the other's turn
         critical section
-    turn = j;                   /* hand the turn to the other process */
+    turn = j;               // give the turn to the other process
         remainder section
 } while (true);
 ```
 
-Checked against the three requirements of a critical-section solution (defined next, in 12.4):
+*Easy reading:* Pi waits as long as it is Pj's turn; after its critical section Pi gives the turn to Pj. This keeps both from entering together, but the processes are forced to take turns one after the other. (This weakness is what Peterson's solution fixes.)
 
-| Requirement | Satisfied? | Why |
-|---|---|---|
-| Mutual exclusion | Yes | `turn` has only one value at a time |
-| Progress | **No** | The processes must **strictly alternate**. If it is `Pj`'s turn and `Pj` is in its remainder section and does not want to enter, `Pi` is stuck even though the critical section is free. |
-| Bounded waiting | Yes | The other process can enter at most once before you |
+### 6.2.4 Three requirements of a solution
 
-This failure of **progress** is the reason for Peterson's solution.
+1. **Mutual exclusion** — if process Pi is executing in its critical section, no other process can be executing in its critical section.
+2. **Progress** — if no process is in its critical section and some processes want to enter, only those **not in their remainder sections** can take part in deciding who enters next, and this decision **cannot be postponed forever**.
+3. **Bounded waiting** — there is a **limit** on how many times other processes may enter their critical sections **after** a process has made a request and **before** that request is granted.
 
-### 12.4 Three requirements
+### 6.2.5 Critical-section handling in the OS
+Two approaches, depending on the kernel:
 
-A solution to the critical-section problem must satisfy all three:
-
-1. **Mutual exclusion** — if process `Pi` is executing in its critical section, then **no other process** can be executing in its critical section.
-2. **Progress** — if no process is executing in its critical section and some processes wish to enter, then only the processes **not in their remainder sections** can take part in deciding which enters next, and this selection **cannot be postponed indefinitely**.
-3. **Bounded waiting** — there is a **bound (limit)** on the number of times other processes may enter their critical sections **after** a process has made a request to enter and **before** that request is granted.
-
-Assumptions: each process executes at a **nonzero speed**; **no assumption** is made about the relative speed of the `n` processes.
-
-> **Memory aid:** **M-P-B** — Mutual exclusion, Progress, Bounded waiting.
-
-### 12.5 Preemptive vs non-preemptive kernels
-
-There are two approaches to critical-section handling in an OS, depending on the kernel:
-
-| Kernel type | Behaviour | Race conditions on kernel data |
-|---|---|---|
-| **Preemptive** | Allows a process to be preempted while running in kernel mode | Possible; must be designed carefully |
-| **Non-preemptive** | A process runs until it exits kernel mode, blocks, or voluntarily yields the CPU | Essentially free of them, since only one process is active in the kernel at a time |
+| Kernel | Meaning |
+| --- | --- |
+| **Preemptive** | Allows a process to be preempted (taken off the CPU) while running in kernel mode |
+| **Non-preemptive** | A process runs until it exits kernel mode |
 
 ---
 
-## 13. Peterson's solution
+## 6.3 Peterson's Solution
 
-![Slide: structure of Pi and Pj in Peterson's solution](assets/w6-1-p16-peterson-structure.png)
+- A **good solution for two processes**; a classic **software-based** solution.
+- It **may not work correctly on modern computer architectures**, but it gives a good algorithmic description of how to meet **mutual exclusion, progress and bounded waiting**.
+- Restricted to **two processes**, Pi and Pj, that take turns between their critical and remainder sections.
+- **Assumption:** the `load` and `store` machine instructions are **atomic** (cannot be interrupted).
 
-- A classic **software-based** solution to the critical-section problem; a good solution for **two processes**.
-- It **may not work correctly on modern computer architectures**, but it gives a good algorithmic description and shows the difficulty of meeting all three requirements.
-- It is restricted to **two processes** `Pi` and `Pj` that alternate between their critical and remainder sections.
-- **Assumption:** the `load` and `store` machine-language instructions are **atomic** (cannot be interrupted).
-
-The two processes **share two variables**:
+**Two shared variables:**
 
 | Variable | Meaning |
-|---|---|
-| `int turn;` | Indicates **whose turn** it is to enter the critical section |
-| `boolean flag[2];` | Indicates whether a process is **ready** to enter. `flag[i] = true` means `Pi` is ready. |
+| --- | --- |
+| `int turn;` | Whose **turn** it is to enter the critical section |
+| `boolean flag[2];` | Shows whether a process is **ready** to enter. `flag[i] = true` means Pi is ready |
 
 ```c
-/* Process Pi */                         /* Process Pj */
-do {                                     do {
-    flag[i] = true;                          flag[j] = true;
-    turn = j;                                turn = i;
-    while (flag[j] && turn == j)             while (flag[i] && turn == i)
-        ;                                        ;
-        critical section                         critical section
-    flag[i] = false;                         flag[j] = false;
-        remainder section                        remainder section
-} while (true);                          } while (true);
+// Process Pi                              // Process Pj
+do {                                       do {
+    flag[i] = true;                            flag[j] = true;
+    turn = j;                                  turn = i;
+    while (flag[j] && turn == j);              while (flag[i] && turn == i);
+        critical section                           critical section
+    flag[i] = false;                           flag[j] = false;
+        remainder section                          remainder section
+} while (true);                            } while (true);
 ```
 
-**How to read it:** "I am ready (`flag[i] = true`), but you go first if you want (`turn = j`). I wait only while you are ready **and** it is your turn."
-
-**Proof that the three requirements hold**
-
-1. **Mutual exclusion is preserved.** `Pi` enters only if `flag[j] == false` or `turn == i`. If both were inside together, both flags would be true, so `turn` would have to be both `i` and `j` at once, which is impossible.
-2. **Progress is satisfied.** `Pi` is stuck only while `flag[j] == true && turn == j`. If `Pj` is not interested, `flag[j]` is false and `Pi` enters straight away.
-3. **Bounded waiting is met.** When `Pj` leaves, it sets `flag[j] = false`. If it tries again, it sets `turn = i`, so `Pi` enters after **at most one** entry by `Pj`.
+**Easy reading:** "I am ready (`flag[i] = true`), but I politely give you the turn (`turn = j`). I wait only if you are also ready **and** it is your turn." If the other process is not interested, `flag[j]` is false and Pi walks in directly. If both want to enter, whichever wrote `turn` last waits, so only one enters.
 
 ---
 
-## 14. Synchronization hardware
+## 6.4 Synchronization Hardware
 
-- Many systems provide **hardware support** for implementing critical-section code.
-- All these solutions are based on the idea of **locking**: protecting critical regions with locks.
+- Many systems give **hardware support** for critical-section code.
+- All solutions are based on **locking** — protecting critical regions with locks.
+- **Uniprocessors** — can **disable interrupts**, so the running code runs **without preemption**. This is generally **too inefficient on multiprocessor systems**, and OSs using it are **not broadly scalable**.
+- Modern machines provide special **atomic hardware instructions** (**atomic = non-interruptible**) that either
+  - **test a memory word and set its value**, or
+  - **swap the contents of two memory words**.
 
-### 14.1 Disabling interrupts
-
-- On a **uniprocessor**, we could **disable interrupts**. The currently running code then executes **without preemption**.
-- This is generally **too inefficient on multiprocessor systems**. Operating systems that rely on it are **not broadly scalable**.
-
-### 14.2 Locks
-
-Modern machines provide special **atomic hardware instructions** (**atomic = non-interruptible**) that either
-
-- **test a memory word and set its value**, or
-- **swap the contents of two memory words**.
-
-General lock-based solution:
-
+### 6.4.1 Solution using locks
 ```c
 do {
     acquire lock
@@ -959,40 +631,30 @@ do {
 } while (TRUE);
 ```
 
-### 14.3 test_and_set (TestAndSet)
-
-The slides write it as `test_and_set`; textbooks also write `TestAndSet`.
-
+### 6.4.2 test_and_set instruction
 ```c
-boolean TestAndSet(boolean *target) {
-    boolean rv = *target;     /* remember the old value */
-    *target = TRUE;           /* set the lock            */
-    return rv;                /* return the old value    */
+boolean test_and_set(boolean *target) {
+    boolean rv = *target;     // remember old value
+    *target = TRUE;           // set to TRUE
+    return rv;                // return old value
 }
 ```
+1. Executed **atomically**.
+2. **Returns the original value** of the passed parameter.
+3. **Sets the new value** of the parameter to **TRUE**.
 
-Properties:
-
-1. It is executed **atomically**.
-2. It **returns the original value** of the passed parameter.
-3. It **sets the new value** of the passed parameter to `TRUE`.
-
-**Solution** — shared boolean `lock`, initialized to `FALSE`:
-
+**Solution** (shared boolean `lock`, initially FALSE):
 ```c
 do {
-    while (TestAndSet(&lock))
-        ;                     /* do nothing: lock was already TRUE */
+    while (test_and_set(&lock));    // do nothing
         /* critical section */
-    lock = FALSE;
+    lock = false;
         /* remainder section */
-} while (TRUE);
+} while (true);
 ```
+*Easy reading:* if `lock` was FALSE, the call returns FALSE (loop ends, you enter) and sets it TRUE at the same moment. Others now get TRUE and keep waiting until you set `lock = false`.
 
-If `lock` was `FALSE`, `TestAndSet` returns `FALSE` (so the loop ends) and sets `lock` to `TRUE` in the same atomic step. Everyone else sees `TRUE` and keeps spinning.
-
-### 14.4 compare_and_swap
-
+### 6.4.3 compare_and_swap instruction
 ```c
 int compare_and_swap(int *value, int expected, int new_value) {
     int temp = *value;
@@ -1001,75 +663,55 @@ int compare_and_swap(int *value, int expected, int new_value) {
     return temp;
 }
 ```
+1. Executed **atomically**.
+2. **Returns the original value** of `value`.
 
-Properties:
-
-1. It is executed **atomically**.
-2. It **returns the original value** of the parameter `value`.
-3. It sets `value` to `new_value` **only if** `*value == expected`.
-
-**Solution** — shared integer `lock` initialized to 0:
-
+**Solution** (shared integer `lock`, initially 0):
 ```c
 do {
-    while (compare_and_swap(&lock, 0, 1) != 0)
-        ;                     /* do nothing */
+    while (compare_and_swap(&lock, 0, 1) != 0);   // do nothing
         /* critical section */
     lock = 0;
         /* remainder section */
 } while (true);
 ```
 
-> The simple test_and_set and compare_and_swap solutions give **mutual exclusion** and progress, but **not bounded waiting**: an unlucky process could lose the race every time.
-
-### 14.5 Bounded-waiting mutual exclusion with test_and_set
-
-Shared data: `boolean waiting[n];` and `boolean lock;`, all initialized to `FALSE`.
-
+### 6.4.4 Bounded-waiting mutual exclusion with test_and_set
 ```c
 do {
-    waiting[i] = TRUE;
-    key = TRUE;
+    waiting[i] = true;
+    key = true;
     while (waiting[i] && key)
-        key = TestAndSet(&lock);
-    waiting[i] = FALSE;
+        key = test_and_set(&lock);
+    waiting[i] = false;
 
         /* critical section */
 
     j = (i + 1) % n;
     while ((j != i) && !waiting[j])
-        j = (j + 1) % n;          /* look for the next waiting process */
-
+        j = (j + 1) % n;
     if (j == i)
-        lock = FALSE;             /* nobody is waiting: free the lock  */
+        lock = false;
     else
-        waiting[j] = FALSE;       /* pass the critical section to Pj   */
+        waiting[j] = false;
 
         /* remainder section */
-} while (TRUE);
+} while (true);
 ```
-
-| Requirement | Why it holds |
-|---|---|
-| Mutual exclusion | `Pi` enters only if `waiting[i] == FALSE` or `key == FALSE`. `key` becomes `FALSE` only for the first process to execute `TestAndSet`; `waiting[i]` becomes `FALSE` only when a leaving process hands over. |
-| Progress | A leaving process either frees the lock or hands over to a waiting process |
-| Bounded waiting | The leaving process scans in cyclic order `i+1, i+2, …`, so any waiting process gets in within **`n − 1` turns** |
+*Easy reading:* when a process leaves, it looks at the other processes **in circular order** (i+1, i+2, …). If someone is waiting, it hands the critical section directly to that process (`waiting[j] = false`); if nobody waits, it releases the lock. This way no process waits forever, so **bounded waiting** is met.
 
 ---
 
-## 15. Semaphores
+## 6.5 Semaphores
 
-### 15.1 Definition
-
-> A **semaphore** is a robust synchronization tool that processes use to synchronize their activities. A semaphore `S` is an **integer variable** that can only be accessed through **two indivisible (atomic) operations**: `wait()` and `signal()`.
-
-- Originally called **`P()`** (wait) and **`V()`** (signal).
-- Less complicated to use than the hardware instructions.
+### 6.5.1 Definition
+- A **semaphore** is a **robust synchronization tool** used by processes to synchronize their activities.
+- Semaphore **S** is an **integer variable**.
+- It can be accessed only through two **indivisible (atomic)** operations: **`wait()`** and **`signal()`** (originally called **P()** and **V()**).
 
 ```c
 wait(S) {
-    while (S <= 0)
-        ;           /* busy wait */
+    while (S <= 0);    // busy wait
     S--;
 }
 
@@ -1078,57 +720,38 @@ signal(S) {
 }
 ```
 
-### 15.2 Counting and binary semaphores
+### 6.5.2 Semaphore usage
+- **Counting semaphore** — integer value can range over an **unrestricted domain**.
+- **Binary semaphore** — value can be only **0 or 1**; the same as a **mutex lock**.
+- Semaphores can solve various synchronization problems.
+- A **counting semaphore S can be implemented as a binary semaphore**.
 
-| Type | Range | Use |
-|---|---|---|
-| **Counting semaphore** | Integer value over an **unrestricted domain** | Controls access to a resource with several instances |
-| **Binary semaphore** | Only **0 and 1**; simpler to implement | Same as a **mutex lock** |
-
-A counting semaphore `S` can be implemented using binary semaphores.
-
-### 15.3 Usage
-
-**1. Mutual exclusion**
+**Example — P1 and P2 where S1 must happen before S2.** Create a semaphore `synch` initialized to **0**:
 
 ```c
-Semaphore mutex;          /* initialized to 1 */
-do {
-    wait(mutex);
-        /* critical section */
-    signal(mutex);
-        /* remainder section */
-} while (TRUE);
+// P1                   // P2
+S1;                     wait(synch);
+signal(synch);          S2;
 ```
+P2 cannot pass `wait(synch)` until P1 has finished S1 and called `signal(synch)`.
 
-**2. Ordering two statements** — `P1` and `P2` require that `S1` happens before `S2`. Create a semaphore `synch` initialized to **0**:
+### 6.5.3 Semaphore implementation and the busy-waiting problem
+- It must be ensured that **no two processes execute `wait()` and `signal()` on the same semaphore at the same time**.
+- So the implementation itself becomes a **critical-section problem**, with the wait and signal code placed inside a critical section.
+- This can bring **busy waiting** into the implementation. But the implementation code is **short**, and there is **little busy waiting if the critical section is rarely occupied**.
 
-```c
-/* P1 */                 /* P2 */
-S1;                      wait(synch);
-signal(synch);           S2;
-```
+**What is the busy-waiting problem?**
+- The main disadvantage of the semaphore definition above is that it **requires busy waiting**.
+- While one process is in its critical section, any other process that tries to enter **must loop continuously in the entry code** (wasting CPU time).
 
-`P2` cannot pass `wait(synch)` until `P1` has run `S1` and signalled.
+### 6.5.4 Implementation with no busy waiting
+**How to overcome busy waiting:**
+- Change the definition of `wait()` and `signal()`.
+- When a process executes `wait()` and finds the semaphore value **not positive**, it must wait — but instead of busy waiting, the process **blocks itself**.
+- The **block** operation puts the process into a **waiting queue attached to the semaphore** and changes its state to **waiting**. Control goes to the **CPU scheduler**, which picks another process.
+- A blocked process is **restarted** when some other process executes `signal()`. The **wakeup()** operation changes it from the **waiting state to the ready state**.
 
-### 15.4 Busy waiting
-
-- The implementation must guarantee that **no two processes execute `wait()` and `signal()` on the same semaphore at the same time**.
-- So the implementation itself becomes a **critical-section problem**, with the `wait` and `signal` code placed in the critical section.
-- This can now cause **busy waiting** in the critical-section implementation. However, the implementation code is short, and there is little busy waiting if the critical section is rarely occupied.
-- Applications may spend a long time in critical sections, so busy waiting is **not a good general solution**.
-
-> **The busy-waiting problem:** the main disadvantage of the semaphore definition above is that it requires **busy waiting**. While one process is in its critical section, any other process that tries to enter must **loop continuously in the entry code**, wasting CPU cycles.
-
-### 15.5 Implementation without busy waiting
-
-**Idea:** modify the definitions of `wait()` and `signal()`.
-
-- When a process executes `wait()` and finds the semaphore value is not positive, it must wait. Instead of busy waiting, the process **blocks itself**.
-- The **block** operation places the process into a **waiting queue associated with the semaphore** and switches its state to **waiting**. Control is transferred to the CPU scheduler, which selects another process.
-- A blocked process is restarted when some other process executes `signal()`. The **wakeup** operation changes it from the **waiting state to the ready state**.
-
-Each semaphore has an associated waiting queue; each entry has a `value` (integer) and a pointer to the next record in the list.
+Each semaphore has a waiting queue; each entry has two items: **value** (integer) and a **pointer to the next record** in the list. Two operations: **block** and **wakeup**.
 
 ```c
 typedef struct {
@@ -1153,285 +776,195 @@ signal(semaphore *S) {
 }
 ```
 
-| Operation | Meaning |
-|---|---|
-| `block()` | Place the invoking process on the appropriate waiting queue |
-| `wakeup(P)` | Remove one process from the waiting queue and place it in the ready queue |
+### 6.5.5 Deadlock, starvation, priority inversion
 
-> **Exam point:** in this implementation the value **can be negative**. If `S->value` is negative, its magnitude is the **number of processes waiting** on the semaphore.
+**Deadlock** — two or more processes wait **indefinitely** for an event that can be caused only by one of the waiting processes.
 
-| Busy-waiting semaphore | Blocking semaphore |
-|---|---|
-| Value never goes below 0 | Value may be negative |
-| Waiting process loops (wastes CPU) | Waiting process sleeps in a queue |
-| No context switch; good for very short waits on multiprocessors | Context switch needed; good for longer waits |
-
-### 15.6 Deadlock, starvation, priority inversion
-
-**Deadlock** — two or more processes are waiting indefinitely for an event that can be caused only by one of the waiting processes.
-
-Let `S` and `Q` be two semaphores initialized to 1:
+Let S and Q be two semaphores initialized to 1:
 
 ```c
-/* P0 */                 /* P1 */
-wait(S);                 wait(Q);
-wait(Q);                 wait(S);
-  ...                      ...
-signal(S);               signal(Q);
-signal(Q);               signal(S);
+// P0                 // P1
+wait(S);              wait(Q);
+wait(Q);              wait(S);
+...                   ...
+signal(S);            signal(Q);
+signal(Q);            signal(S);
 ```
+If P0 runs `wait(S)` and P1 runs `wait(Q)`, then P0 waits for Q (held by P1) and P1 waits for S (held by P0) — neither can go on.
 
-If `P0` runs `wait(S)` and then `P1` runs `wait(Q)`, `P0` waits for `Q` (held by `P1`) and `P1` waits for `S` (held by `P0`). Neither can continue.
+**Starvation** — **indefinite blocking**. A process may **never be removed from the semaphore queue** in which it is waiting.
 
-**Starvation** — **indefinite blocking**. A process may never be removed from the semaphore queue in which it is suspended (for example if the queue is served in LIFO order).
-
-**Priority inversion** — a scheduling problem in which a **lower-priority process holds a lock needed by a higher-priority process**. It is solved by the **priority-inheritance protocol**: the low-priority holder temporarily inherits the higher priority until it releases the lock.
+**Priority inversion** — a scheduling problem when a **lower-priority process holds a lock needed by a higher-priority process**. It is solved by the **priority-inheritance protocol**.
 
 ---
 
-## 16. Classical problems of synchronization
+## 6.6 Classic Problems of Synchronization
 
-These problems are used to **test newly proposed synchronization schemes**:
+These problems are used to **test newly proposed synchronization schemes**: **Bounded-Buffer, Readers–Writers, Dining-Philosophers.**
 
-1. Bounded-Buffer Problem
-2. Readers and Writers Problem
-3. Dining-Philosophers Problem
+### 6.6.1 Bounded-buffer problem
+- **n buffers**, each can hold one item.
 
-### 16.1 Bounded buffer
-
-![Slide: producer and consumer with semaphores](assets/w6-2-p14-bounded-buffer-semaphores.png)
-
-`n` buffers, each able to hold one item.
-
-| Semaphore | Initial value | Meaning |
-|---|---|---|
-| `mutex` | 1 | Mutual exclusion on the buffer |
-| `full` | 0 | Number of full slots |
+| Semaphore | Initial value | Purpose |
+| --- | --- | --- |
+| `mutex` | 1 | Only one process touches the buffer at a time |
+| `full` | 0 | Number of filled slots |
 | `empty` | n | Number of empty slots |
 
 ```c
-/* Producer */
+// Producer
 do {
-    /* produce an item in nextp */
-    wait(empty);          /* wait until empty > 0, then decrement empty */
-    wait(mutex);          /* acquire lock */
-    /* add the item to the buffer */
-    signal(mutex);        /* release lock */
-    signal(full);         /* increment full */
+    wait(empty);     // wait until empty > 0, then decrement empty
+    wait(mutex);     // acquire lock
+    /* add data to buffer */
+    signal(mutex);   // release lock
+    signal(full);    // increment full
 } while (TRUE);
 
-/* Consumer */
+// Consumer
 do {
-    wait(full);           /* wait until full > 0, then decrement full */
-    wait(mutex);          /* acquire lock */
-    /* remove an item from the buffer to nextc */
-    signal(mutex);        /* release lock */
-    signal(empty);        /* increment empty */
-    /* consume the item in nextc */
+    wait(full);      // wait until full > 0, then decrement full
+    wait(mutex);     // acquire lock
+    /* remove data from buffer */
+    signal(mutex);   // release lock
+    signal(empty);   // increment empty
 } while (TRUE);
 ```
 
-> **Order matters:** always `wait(empty)`/`wait(full)` **before** `wait(mutex)`. If a producer took `mutex` first and then blocked on `empty`, the consumer could never get `mutex` to free a slot, giving a deadlock.
+### 6.6.2 Readers–writers problem
+- A **database is shared** among several concurrent processes.
+- Some processes only **read** (**readers**); others **update — read and write** (**writers**).
+- If **two readers** access the shared data together, **no problem** occurs.
+- If a **writer and any other process** (reader or writer) access it together, **chaos may result**.
+- So **writers must have exclusive access** to the shared database.
 
-### 16.2 Readers-writers
-
-![Slide: writer and reader processes](assets/w6-2-p17-readers-writers-code.png)
-
-- A database (data set) is shared among several concurrent processes.
-- **Readers** only read the data set; they do **not** perform any updates.
-- **Writers** can both read and write.
-- If two readers access the data together, **no adverse effects** result.
-- If a writer and any other process (reader or writer) access it together, **chaos may ensue**.
-- **Requirement:** allow **multiple readers** at the same time, but only **one writer**, with **exclusive access**.
-
-Shared data:
-
-| Item | Initial value | Purpose |
-|---|---|---|
-| `mutex` (semaphore) | 1 | Mutual exclusion when `readcount` is updated, that is, when any reader enters or exits |
-| `wrt` / `rw_mutex` (semaphore) | 1 | Common to readers and writers; gives writers exclusive access |
-| `readcount` (integer) | 0 | Number of processes currently reading |
+**Solution using semaphores** — two semaphores and one integer:
+1. `mutex` — semaphore (initial **1**); gives mutual exclusion when **`readcount`** is updated, i.e. when a reader enters or leaves.
+2. `wrt` — semaphore (initial **1**); **common to readers and writers**.
+3. `readcount` — integer (initial **0**); **how many processes are reading** right now.
 
 ```c
-/* Writer */
+// Writer
 do {
-    wait(wrt);            /* writer requests the critical section */
+    wait(wrt);            // writer requests the critical section
     /* writing is performed */
-    signal(wrt);          /* leaves the critical section */
-} while (TRUE);
+    signal(wrt);          // leaves the critical section
+} while (true);
 
-/* Reader */
+// Reader
 do {
     wait(mutex);
-    readcount++;                  /* one more reader */
-    if (readcount == 1)
-        wait(wrt);                /* first reader locks out writers */
-    signal(mutex);                /* other readers may now enter */
+    readcnt++;            // one more reader
+    if (readcnt == 1)
+        wait(wrt);        // first reader blocks writers
+    signal(mutex);        // other readers can enter now
 
     /* reading is performed */
 
     wait(mutex);
-    readcount--;                  /* a reader leaves */
-    if (readcount == 0)
-        signal(wrt);              /* last reader lets writers in */
+    readcnt--;            // a reader leaves
+    if (readcnt == 0)
+        signal(wrt);      // last reader lets writers in
     signal(mutex);
-} while (TRUE);
+} while (true);
 ```
 
-**Variations** (all involve some form of priority):
+**Variations of the problem**
+- **First variation** — no reader is kept waiting unless a writer already has permission to use the shared object.
+- **Second variation** — once a writer is ready, it does its write **as soon as possible**.
+- **Both may cause starvation**, which leads to even more variations.
+- On some systems the problem is solved by the **kernel providing reader–writer locks**.
 
-| Variation | Rule | Who may starve |
-|---|---|---|
-| **First** | No reader is kept waiting unless a writer already has permission to use the shared object | Writers |
-| **Second** | Once a writer is ready, it performs its write as soon as possible | Readers |
+### 6.6.3 Dining-philosophers problem
+- Philosophers can only **think and eat, alternately**.
+- They **don't interact with neighbours**; sometimes they try to pick up **2 chopsticks (one at a time)** to eat from the bowl.
+- They need **both** chopsticks to eat, and **release both** when finished.
+- For **5 philosophers**, the shared data is: a **bowl of rice** (data set) and **semaphore `chopstick[5]`** initialized to **1**.
 
-Both may cause **starvation**, which leads to even more variations. On some systems the problem is solved by the kernel providing **reader-writer locks**. The solution above is the first variation.
-
-### 16.3 Dining philosophers
-
-![Slide: dining-philosophers problem](assets/w6-3-p03-dining-philosophers.png)
-
-- Philosophers spend their lives **alternating between thinking and eating**.
-- They do not interact with their neighbours. Occasionally a philosopher tries to pick up **two chopsticks, one at a time**, to eat from the bowl.
-- A philosopher needs **both** chopsticks to eat, and releases both when done.
-- With 5 philosophers, the shared data is: a bowl of rice (the data set) and `semaphore chopstick[5]`, each initialized to 1.
-
-```text
-            P0
-       c0        c1
-    P4              P1
-       c4        c2
-         P3  c3  P2        (5 philosophers, 5 chopsticks, one between each pair)
-```
-
+**Structure of philosopher i:**
 ```c
-/* Philosopher i */
 do {
-    wait(chopstick[i]);               /* pick up left chopstick  */
-    wait(chopstick[(i + 1) % 5]);     /* pick up right chopstick */
-    /* eat */
+    wait(chopstick[i]);
+    wait(chopstick[(i + 1) % 5]);
+    // eat
     signal(chopstick[i]);
     signal(chopstick[(i + 1) % 5]);
-    /* think */
+    // think
 } while (TRUE);
 ```
 
 **What is the problem with this algorithm?**
-
-It guarantees that **no two neighbours eat simultaneously**, but it can create a **deadlock**. Suppose all five philosophers become hungry at the same time and **each grabs the left chopstick**. All elements of `chopstick` are now 0. When each philosopher tries to grab the right chopstick, he is **delayed forever**.
+- It guarantees that **no two neighbours eat at the same time**, but it **could still create a deadlock**.
+- Suppose **all five philosophers become hungry together and each picks up the left chopstick**. All elements of `chopstick` become **0**.
+- When each tries to pick up the right chopstick, he is **delayed forever**.
 
 **Possible remedies to avoid deadlock**
-
 1. Allow **at most four** philosophers to sit at the table at the same time.
-2. Allow a philosopher to pick up chopsticks **only if both are available** (he must pick them up inside a critical section).
-3. Use an **asymmetric** solution: an **odd** philosopher picks up the left chopstick first and then the right; an **even** philosopher picks up the right first and then the left.
+2. Allow a philosopher to pick up chopsticks **only if both are available** (he must pick them up in a critical section).
+3. Use an **asymmetric solution**: an **odd** philosopher picks up the **left** chopstick first and then the right; an **even** philosopher picks up the **right** first and then the left.
 
 ---
 
-## 17. Problems with semaphores
+## 6.7 Monitors
 
-Semaphores are easy to misuse. Incorrect use of the operations:
+### 6.7.1 Problems with semaphores
+Incorrect use of semaphore operations:
+- `signal(mutex) … wait(mutex)` (wrong order)
+- `wait(mutex) … wait(mutex)`
+- **Omitting** `wait(mutex)` or `signal(mutex)` (or both)
 
-| Mistake | Effect |
-|---|---|
-| `signal(mutex) … wait(mutex)` (order reversed) | Several processes can be in the critical section at once; **mutual exclusion is violated** |
-| `wait(mutex) … wait(mutex)` | The process blocks on itself; **deadlock** |
-| Omitting `wait(mutex)` | Mutual exclusion is violated |
-| Omitting `signal(mutex)` | Others wait forever; **deadlock** |
-| Omitting both | Mutual exclusion is violated |
+Also, **deadlock and starvation are possible**. These mistakes are the reason for monitors.
 
-**Deadlock and starvation are possible.** These errors are hard to detect because they show up only for particular interleavings. This is the motivation for monitors.
+### 6.7.2 Monitor
+- A **convenient and effective mechanism for process synchronization**.
+- **Only one process may be active within the monitor at a time.**
+- On its own it **lacks the power to model some synchronization schemes** (so condition variables are added).
 
----
-
-## 18. Monitors
-
-### 18.1 Concept and syntax
-
-![Slide: schematic view of a monitor](assets/ch6-p38-monitor-schematic.png)
-
-> A **monitor** is a **high-level abstraction** that provides a convenient and effective mechanism for process synchronization.
-
-- It is an **abstract data type**: its internal variables are accessible **only by code within its procedures**.
-- **Only one process may be active within the monitor at a time.** Mutual exclusion is automatic; the programmer does not write it.
-- On its own it is **not powerful enough to model some synchronization schemes**, which is why condition variables are added.
-
-```text
+```
 monitor monitor-name
 {
     // shared variable declarations
-
-    procedure P1 (…) { … }
-    …
-    procedure Pn (…) { … }
-
+    procedure P1 (…) { …. }
+    ...
+    procedure Pn (…) { …… }
     initialization code (…) { … }
 }
 ```
 
-**Schematic view of a monitor**
+**Schematic view:** the monitor has **shared data**, a set of **operations** and **initialization code**; processes wanting to use it wait in an **entry queue**.
 
-```mermaid
-flowchart TB
-    EQ["entry queue: processes waiting to enter"] --> MON
-    subgraph MON["monitor (one active process at a time)"]
-        SD["shared data"]
-        OPS["operations (procedures)"]
-        INIT["initialization code"]
-    end
+```
+ entry queue ──►┌──────────────────────────┐
+ (waiting       │ shared data              │
+  processes)    │ operations (P1 … Pn)     │
+                │ initialization code      │
+                └──────────────────────────┘
 ```
 
-### 18.2 Condition variables
-
-![Slide: monitor with condition variables](assets/ch6-p40-monitor-condition-variables.png)
-
-```text
+### 6.7.3 Condition variables
+```c
 condition x, y;
 ```
+Two operations are allowed on a condition variable:
+- **`x.wait()`** — the process that calls it is **suspended** until another process calls `x.signal()`.
+- **`x.signal()`** — **resumes one** of the processes (if any) that called `x.wait()`. If **no process is waiting** on `x`, it has **no effect** on the variable.
 
-Only two operations are allowed on a condition variable:
+**Monitor with condition variables:** the figure shows the same monitor, with **a separate queue for each condition** (x and y) inside it, besides the entry queue.
 
-| Operation | Effect |
-|---|---|
-| `x.wait()` | The process that invokes it is **suspended** until another process invokes `x.signal()` |
-| `x.signal()` | **Resumes one** of the processes (if any) that invoked `x.wait()`. If no process is waiting on `x`, it has **no effect**. |
+### 6.7.4 Condition-variable choices
+If process **P** calls `x.signal()` and process **Q** is suspended in `x.wait()`, what happens next? **P and Q cannot both run in parallel inside the monitor.** If Q is resumed, P must wait.
 
-> **Exam trap:** a semaphore `signal()` always increments the value, so it is "remembered". A condition-variable `x.signal()` with no waiter is **lost**.
+Options:
+- **Signal and wait**
+- **Signal and continue**
 
-**Monitor with condition variables**
+Both have merits and demerits — the **language implementer can decide**. Monitors in **Concurrent Pascal** use a compromise. Monitors are also implemented in **Mesa, C#, Java** and other languages.
 
-```mermaid
-flowchart TB
-    EQ["entry queue"] --> MON
-    subgraph MON["monitor"]
-        SD["shared data"]
-        QX["queue for condition x"]
-        QY["queue for condition y"]
-        OPS["operations"]
-        INIT["initialization code"]
-    end
-```
-
-### 18.3 Signal-and-wait vs signal-and-continue
-
-If process `P` invokes `x.signal()` while process `Q` is suspended in `x.wait()`, what should happen next? **`P` and `Q` cannot both execute in the monitor in parallel.** If `Q` is resumed, `P` must wait.
-
-| Option | Meaning |
-|---|---|
-| **Signal and wait** | `P` waits until `Q` leaves the monitor or waits for another condition |
-| **Signal and continue** | `Q` waits until `P` leaves the monitor or waits for another condition |
-
-- Both have merits and demerits; the **language implementer decides**.
-- Monitors in **Concurrent Pascal** use a compromise: the process executing `signal` **immediately leaves the monitor**, and `Q` is resumed.
-- Monitors are implemented in other languages including **Mesa, C#, and Java**.
-
-### 18.4 Monitor solution to dining philosophers
-
-This is a **deadlock-free** solution. It imposes the restriction that a philosopher may **pick up chopsticks only if both are available**.
-
-- Three states are needed: `enum { THINKING, HUNGRY, EATING } state[5];`
-- Philosopher `i` may set `state[i] = EATING` only if the two neighbours are not eating: `state[(i+4) % 5] != EATING` and `state[(i+1) % 5] != EATING`.
-- `condition self[5];` lets philosopher `i` **delay himself** when hungry but unable to get both chopsticks.
+### 6.7.5 Dining philosophers solution using a monitor
+- This is a **deadlock-free** solution. It adds the rule that a philosopher may **pick up his chopsticks only if both are available**.
+- We need **three states** for a philosopher: `enum { thinking, hungry, eating } state[5];`
+- Philosopher i can set `state[i] = eating` only if his two neighbours are not eating: `state[(i+4)%5] != eating` and `state[(i+1)%5] != eating`.
+- We also declare **`condition self[5];`** — philosopher i can **delay himself** when he is hungry but cannot get the chopsticks he needs.
 
 ```c
 monitor DiningPhilosophers
@@ -1441,15 +974,16 @@ monitor DiningPhilosophers
 
     void pickup(int i) {
         state[i] = HUNGRY;
-        test(i);                          /* try to start eating */
+        test(i);
         if (state[i] != EATING)
-            self[i].wait();               /* could not: wait */
+            self[i].wait();
     }
 
     void putdown(int i) {
         state[i] = THINKING;
-        test((i + 4) % 5);                /* test left neighbour  */
-        test((i + 1) % 5);                /* test right neighbour */
+        // test left and right neighbours
+        test((i + 4) % 5);
+        test((i + 1) % 5);
     }
 
     void test(int i) {
@@ -1468,50 +1002,41 @@ monitor DiningPhilosophers
 }
 ```
 
-Each philosopher `i` invokes the operations in this sequence:
-
+Each philosopher i uses the operations in this order:
 ```c
 DiningPhilosophers.pickup(i);
-    /* EAT */
+EAT
 DiningPhilosophers.putdown(i);
 ```
+**Result: no deadlock, but starvation is possible.**
 
-> **Result: no deadlock, but starvation is possible.** A philosopher can starve if the two neighbours keep eating alternately.
-
-### 18.5 Implementing a monitor with semaphores
-
+### 6.7.6 Monitor implementation using semaphores
 **Variables**
-
 ```c
-semaphore mutex;      /* initially = 1; guards entry to the monitor            */
-semaphore next;       /* initially = 0; signalling processes suspend here      */
-int next_count = 0;   /* number of processes suspended on next                 */
+semaphore mutex;      // (initially = 1)
+semaphore next;       // (initially = 0)
+int next_count = 0;
 ```
-
-**Each procedure `F`** is replaced by:
-
+**Each procedure F** is replaced by:
 ```c
 wait(mutex);
-    ...
-    body of F;
-    ...
+…
+body of F;
+…
 if (next_count > 0)
-    signal(next);     /* let a suspended signaller continue */
+    signal(next);
 else
-    signal(mutex);    /* otherwise open the monitor */
+    signal(mutex);
 ```
+This ensures **mutual exclusion within the monitor**.
 
-Mutual exclusion within the monitor is ensured.
-
-**For each condition variable `x`:**
-
+**For each condition variable x:**
 ```c
-semaphore x_sem;      /* initially = 0 */
+semaphore x_sem;      // (initially = 0)
 int x_count = 0;
 ```
 
-`x.wait()` is implemented as:
-
+`x.wait` is implemented as:
 ```c
 x_count++;
 if (next_count > 0)
@@ -1522,8 +1047,7 @@ wait(x_sem);
 x_count--;
 ```
 
-`x.signal()` is implemented as:
-
+`x.signal` is implemented as:
 ```c
 if (x_count > 0) {
     next_count++;
@@ -1533,18 +1057,23 @@ if (x_count > 0) {
 }
 ```
 
-This implements the **signal-and-wait** scheme: the signaller suspends itself on `next` until the resumed process leaves or waits.
-
-### 18.6 Resuming processes and the conditional wait
-
-- If several processes are queued on condition `x` and `x.signal()` is executed, **which one should be resumed?**
+### 6.7.7 Resuming processes within a monitor
+- If **several processes are queued on condition x** and `x.signal()` is executed, **which one should be resumed?**
 - **FCFS is frequently not adequate.**
-- Use the **conditional-wait** construct **`x.wait(c)`**, where `c` is a **priority number**.
+- Use the **conditional-wait** construct **`x.wait(c)`**, where **c is a priority number**.
 - The process with the **lowest number (highest priority)** is scheduled next.
 
-### 18.7 Single-resource allocator
+### 6.7.8 Single-resource allocation
+- A **priority number** is used to allocate a **single resource** among competing processes. It gives the **maximum time** a process plans to use the resource.
 
-A priority number is used to allocate a **single resource** among competing processes. It specifies the **maximum time** a process plans to use the resource, so the shortest request is served first.
+```c
+R.acquire(t);
+...
+access the resource;
+...
+R.release;
+```
+where **R** is an instance of type `ResourceAllocator`.
 
 ```c
 monitor ResourceAllocator
@@ -1569,1290 +1098,699 @@ monitor ResourceAllocator
 }
 ```
 
-Usage, where `R` is an instance of type `ResourceAllocator`:
-
-```c
-R.acquire(t);
-    ...
-    access the resource;
-    ...
-R.release();
-```
-
 ---
 
-## 19. Synchronization examples
+## 6.8 Synchronization Examples
 
-> **Overview only.** The Week 6_3 overview slide lists *Synchronization Examples*, but no slide in the Week 6 decks develops it, so there is nothing further to learn here for this unit.
+> **Not covered in the PPTs.** The Week 6_3 overview slide lists "Synchronization Examples", but no slide explains it. Nothing is added here to keep the notes strictly within the PPTs.
 
----
+## 6.9 Atomic Transactions
 
-## 20. Atomic transactions
-
-> **Overview only.** The Week 6_3 overview slide lists *Atomic transactions*, but no slide develops it. Know only the idea: a transaction is a set of operations that must be performed as one atomic unit (all or nothing).
+> **Not covered in the PPTs.** The Week 6_3 overview slide lists "Atomic transactions", but no slide explains it. Nothing is added here to keep the notes strictly within the PPTs.
 
 ---
+---
 
-## 21. Resources and the system model
+# WEEK 7 — DEADLOCKS
 
-### 21.1 System model
+## 7.1 Resources and the Deadlock Problem
 
+### 7.1.1 Resources
 - A system consists of **resources**.
-- Resource **types** `R1, R2, …, Rm`: CPU cycles, memory space, I/O devices.
-- Each resource type `Ri` has **`Wi` instances**.
-- Each process uses a resource in this sequence:
-  1. **request** the resource;
-  2. **use** the resource;
-  3. **release** the resource.
-- If the request is **denied**, the process must wait: it may be **blocked**, or the request may **fail with an error code**.
+- **Resource types** R1, R2, …, Rm — for example **CPU cycles, memory space, I/O devices**.
+- Each resource type Ri has **Wi instances**.
+- Each process uses a resource in this order: **request → use → release**.
+- **Preemptable resources** — can be taken away from a process with **no ill effects**.
+- **Non-preemptable resources** — taking them away makes the process **fail**.
+- If a request is **denied**, the requesting process must wait: it may be **blocked**, or the request may **fail with an error code**.
 
-### 21.2 Preemptable and non-preemptable resources
+### 7.1.2 The deadlock problem
+In a computer system, deadlocks arise when members of a group of processes that **hold resources** are **blocked indefinitely** from getting resources **held by other processes in the group**.
 
-| Type | Meaning | Example |
-|---|---|---|
-| **Preemptable** | Can be taken away from a process with **no ill effects** | Memory, CPU |
-| **Non-preemptable** | Will cause the process to **fail** if taken away | Printer in the middle of a job, CD burner |
+### 7.1.3 When do deadlocks happen?
+- Process 1 **holds resource A and requests B**.
+- Process 2 **holds B and requests A**.
+- Both can be blocked, and **neither can proceed** → **DEADLOCK**.
 
-Deadlocks involve non-preemptable resources.
+Deadlocks occur when:
+- Processes are given **exclusive access** to devices or software constructs (resources), and
+- **Each deadlocked process needs a resource held by another deadlocked process.**
 
----
-
-## 22. The deadlock problem
-
-### 22.1 Bridge-crossing example
-
-![Slide: bridge-crossing example](assets/w7-p07-bridge-crossing.png)
-
-```text
-  ════════╗                        ╔════════
-  →  →    ╚════════════════════════╝    ←  ←
-           one-lane bridge section
-  ════════╗                        ╔════════
-          ╚════════════════════════╝
-```
-
-- Traffic can flow in only **one direction** at a time.
-- Each **section of the bridge** can be viewed as a **resource**.
-- If a deadlock occurs, it can be resolved if **one car backs up** (preempt resources and roll back).
-- **Several cars** may have to back up.
-- **Starvation is possible.**
-- Note: **most operating systems do not prevent or deal with deadlocks.**
-
-### 22.2 Definition
-
-> **Deadlock:** in a computer system, deadlocks arise when members of a group of processes that hold resources are **blocked indefinitely** from access to resources held by other processes within the group.
-
-> **Formal definition:** *a set of processes is deadlocked if each process in the set is waiting for an event that only another process in the set can cause.*
+### 7.1.4 Formal definition
+> *A set of processes is deadlocked if each process in the set is waiting for an event that only another process in the set can cause.*
 
 - Usually the event is the **release of a currently held resource**.
 - In a deadlock, none of the processes can **run**, **release resources**, or **be awakened**.
 
-### 22.3 When do deadlocks happen?
-
-![Slide: when do deadlocks happen](assets/w7-p09-when-deadlocks-happen.png)
-
-Suppose Process 1 holds resource A and requests resource B, while Process 2 holds B and requests A. **Both are blocked, and neither can proceed.**
-
-```mermaid
-flowchart LR
-    P1(("Process 1")) -->|requests| B["Resource B"]
-    B -->|held by| P2(("Process 2"))
-    P2 -->|requests| A["Resource A"]
-    A -->|held by| P1
-```
-
-Deadlocks occur when:
-
-- processes are granted **exclusive access** to devices or software constructs (resources);
-- each deadlocked process **needs a resource held by another deadlocked process**.
-
-### 22.4 Deadlock with semaphores
-
-Data: a semaphore `S1` initialized to 1 and a semaphore `S2` initialized to 1; two processes `P1` and `P2`.
+### 7.1.5 Deadlock with semaphores
+- Data: semaphore **S1 = 1**, semaphore **S2 = 1**; two processes P1 and P2.
 
 ```c
-/* P1 */               /* P2 */
-wait(S1);              wait(S2);
-wait(S2);              wait(S1);
+// P1                // P2
+wait(S1);            wait(S2);
+wait(S2);            wait(S1);
 ```
-
-If `P1` completes `wait(S1)` and `P2` then completes `wait(S2)`, `P1` waits for `S2` (held by `P2`) and `P2` waits for `S1` (held by `P1`): each waits for an event only the other can cause, so both are deadlocked.
+If P1 gets S1 and P2 gets S2, then P1 waits for S2 (held by P2) and P2 waits for S1 (held by P1) → deadlock.
 
 ---
 
-## 23. Deadlock characterization: the four conditions
+## 7.2 Deadlock Characterization
 
-Deadlock can arise **only if all four conditions hold simultaneously**. These are **necessary** conditions.
+### 7.2.1 Four conditions for deadlock
+Deadlock can happen **only if all four conditions hold together**:
 
-| Condition | Textbook statement | Short form from the lecture |
-|---|---|---|
-| **1. Mutual exclusion** | Only one process at a time can use a resource | Each resource is assigned to exactly one process or is available |
-| **2. Hold and wait** | A process holding at least one resource is waiting to acquire additional resources held by other processes | A process holding resources can request more |
-| **3. No preemption** | A resource can be released only voluntarily by the process holding it, after that process has completed its task | Previously granted resources cannot be forcibly taken away |
-| **4. Circular wait** | There is a set `{P0, P1, …, Pn}` of waiting processes such that `P0` waits for a resource held by `P1`, `P1` waits for `P2`, …, `Pn-1` waits for `Pn`, and `Pn` waits for `P0` | A circular chain of two or more processes, each waiting for a resource held by the next member of the chain |
+| Condition | Meaning (from the slides) |
+| --- | --- |
+| **1. Mutual exclusion** | Each resource is assigned to **only one process** or is available |
+| **2. Hold and wait** | A process **holding resources can request additional** ones |
+| **3. No preemption** | Previously granted resources **cannot be forcibly taken away** |
+| **4. Circular wait** | There is a **circular chain of 2 or more processes**, each waiting for a resource held by the next member of the chain |
 
-> **Memory aid:** **M-H-N-C** — Mutual exclusion, Hold and wait, No preemption, Circular wait.
-> **Exam point:** break **any one** condition and deadlock becomes impossible. This is the basis of deadlock prevention.
+### 7.2.2 Resource-allocation graph (RAG)
+A set of **vertices V** and a set of **edges E**.
+- V has two types:
+  - **P = {P1, P2, …, Pn}** — all the **processes**.
+  - **R = {R1, R2, …, Rm}** — all the **resource types**.
+- **Request edge** — directed edge **Pi → Rj** (Pi requests Rj).
+- **Assignment edge** — directed edge **Rj → Pi** (Rj is allocated to Pi).
 
----
+**Example graph (from the slide):**
+- One instance of R1, two instances of R2, one instance of R3, three instances of R4.
+- **T1** holds one instance of R2 and is **waiting for an instance of R1**.
+- **T2** holds one instance of R1 and one instance of R2, and is **waiting for an instance of R3**.
+- **T3** holds one instance of R3.
 
-## 24. Resource-allocation graph
+*Easy reading:* there is **no cycle**, so there is no deadlock. T3 can finish and release R3 → T2 can finish → T1 can finish.
 
-### 24.1 Definition
+**Resource-allocation graph with a deadlock:** add one more edge — **T3 requests R2**. Now there are cycles:
+- T1 → R1 → T2 → R3 → T3 → R2 → T1
+- T2 → R3 → T3 → R2 → T2
 
-A resource-allocation graph (RAG) is a set of **vertices `V`** and a set of **edges `E`**.
+Both instances of R2 are held by T1 and T2, who are inside the cycles, so **T1, T2, T3 are deadlocked**.
 
-- `V` is partitioned into two types:
-  - `P = {P1, P2, …, Pn}` — all the **processes** in the system;
-  - `R = {R1, R2, …, Rm}` — all the **resource types** in the system.
-- **Request edge:** directed edge **`Pi → Rj`** (process `Pi` requests an instance of `Rj`).
-- **Assignment edge:** directed edge **`Rj → Pi`** (process `Pi` is holding an instance of `Rj`).
+**Graph with a cycle but no deadlock (slide):** R1 and R2 each have two instances. There is a cycle T1 → R1 → T3 → R2 → T1, **but no deadlock**, because T4 (not in the cycle) can release its instance of R2, which can then go to T3 and break the cycle. (T2 can likewise release R1.)
 
-| Symbol | Meaning |
-|---|---|
-| Circle | Process |
-| Rectangle with dots | Resource type; each dot is one instance |
-| Arrow from circle to rectangle | Request edge |
-| Arrow from a dot to a circle | Assignment edge |
-
-### 24.2 Example of a resource-allocation graph
-
-![Slide: resource-allocation graph example](assets/w7-p15-rag-example.png)
-
-- One instance of `R1`, two instances of `R2`, one instance of `R3`, three instances of `R4`.
-- `T1` holds one instance of `R2` and is waiting for an instance of `R1`.
-- `T2` holds one instance of `R1` and one instance of `R2`, and is waiting for an instance of `R3`.
-- `T3` holds one instance of `R3`.
-
-```mermaid
-flowchart LR
-    T1(("T1")) -->|request| R1["R1 (1 instance)"]
-    R1 -->|assigned| T2(("T2"))
-    R2["R2 (2 instances)"] -->|assigned| T1
-    R2 -->|assigned| T2
-    T2 -->|request| R3["R3 (1 instance)"]
-    R3 -->|assigned| T3(("T3"))
-    R4["R4 (3 instances)"]
-```
-
-**No cycle, so no deadlock.** `T3` can finish and release `R3`; then `T2` can finish; then `T1`.
-
-### 24.3 Resource-allocation graph with a deadlock
-
-![Slide: resource-allocation graph with a deadlock](assets/w7-p16-rag-deadlock.png)
-
-Add one edge to the graph above: **`T3` requests `R2`**.
-
-```mermaid
-flowchart LR
-    T1(("T1")) -->|request| R1["R1 (1 instance)"]
-    R1 -->|assigned| T2(("T2"))
-    R2["R2 (2 instances)"] -->|assigned| T1
-    R2 -->|assigned| T2
-    T2 -->|request| R3["R3 (1 instance)"]
-    R3 -->|assigned| T3(("T3"))
-    T3 -->|request| R2
-```
-
-Two cycles now exist:
-
-- `T1 → R1 → T2 → R3 → T3 → R2 → T1`
-- `T2 → R3 → T3 → R2 → T2`
-
-Both instances of `R2` are held by `T1` and `T2`, which are inside the cycles. **`T1`, `T2`, and `T3` are deadlocked.**
-
-### 24.4 Graph with a cycle but no deadlock
-
-![Slide: graph with a cycle but no deadlock](assets/w7-p17-rag-cycle-no-deadlock.png)
-
-```mermaid
-flowchart LR
-    T1(("T1")) -->|request| R1["R1 (2 instances)"]
-    R1 -->|assigned| T2(("T2"))
-    R1 -->|assigned| T3(("T3"))
-    T3 -->|request| R2["R2 (2 instances)"]
-    R2 -->|assigned| T1
-    R2 -->|assigned| T4(("T4"))
-```
-
-There is a cycle `T1 → R1 → T3 → R2 → T1`, **but no deadlock**. `T4` is not in the cycle and can release its instance of `R2`, which can then be given to `T3`, breaking the cycle. (`T2` can likewise release `R1`.)
-
-### 24.5 Basic facts
-
-| Graph | Conclusion |
-|---|---|
-| **No cycle** | **No deadlock** |
-| Cycle, and **only one instance per resource type** | **Deadlock** |
-| Cycle, and **several instances per resource type** | **Possibility** of deadlock |
-
-> A cycle is **necessary** for deadlock. It is **sufficient** only when every resource type has a single instance.
+### 7.2.3 Basic facts
+- If the graph contains **no cycle** ⇒ **no deadlock**.
+- If the graph contains a **cycle**:
+  - if there is **only one instance per resource type** ⇒ **deadlock**;
+  - if there are **several instances per resource type** ⇒ **possibility of deadlock**.
 
 ---
 
-## 25. Methods for handling deadlocks
+## 7.3 Methods for Handling Deadlocks
 
-| Method | Idea |
-|---|---|
-| **1. Ensure the system never enters a deadlock state** | **Deadlock prevention** — adopt a policy that eliminates one of the four conditions. **Deadlock avoidance** — make the appropriate dynamic choices based on the current state of resource allocation. |
-| **2. Allow the system to enter a deadlock state and then recover** | **Deadlock detection** — attempt to detect the presence of deadlock and take action to recover. |
-| **3. Ignore the problem** | Pretend that deadlocks never occur. **Used by most operating systems, including UNIX.** (Often called the ostrich approach.) |
+Three general approaches (from the slide):
 
-```mermaid
-flowchart TB
-    H["Handling deadlocks"] --> N["Never enter a deadlock state"]
-    H --> D["Enter, detect, recover"]
-    H --> I["Ignore the problem (most OSs, UNIX)"]
-    N --> P["Prevention: break one of the 4 conditions"]
-    N --> A["Avoidance: stay in a safe state (Banker's)"]
-    D --> DT["Detection algorithm"]
-    D --> RC["Recovery: terminate or preempt"]
-```
+| Approach | Idea |
+| --- | --- |
+| **Prevent deadlock** | Adopt a policy that **eliminates one of the conditions** |
+| **Avoid deadlock** | Make the right **dynamic choices based on the current state of resource allocation** |
+| **Detect deadlock** | Try to **detect the presence of deadlock** and take action to **recover** |
 
 ---
 
-## 26. Deadlock prevention
+## 7.4 Deadlock Prevention
 
-**Idea:** restrain the ways a request can be made so that **one of the four necessary conditions is invalidated**.
+**Idea:** make **one of the four necessary conditions impossible.**
 
-### 26.1 Mutual exclusion
+1. **Mutual exclusion** — **not required for sharable resources** (for example read-only files); it **must hold for non-sharable resources**.
+2. **Hold and wait** — must guarantee that **whenever a process requests a resource, it does not hold any other resources**.
+   - Require the process to **request and be allocated all its resources before it begins execution**, **or** allow a process to request resources **only when it has none allocated**.
+   - Drawbacks: **low resource utilization; starvation is possible.**
+3. **No preemption**
+   - If a process holding some resources requests another resource that **cannot be given immediately**, then **all resources it is holding are released**.
+   - The preempted resources are added to the **list of resources the process is waiting for**.
+   - The process is **restarted only when it can get back its old resources as well as the new ones** it is requesting.
+4. **Circular wait** — **impose a total ordering of all resource types**, and require that each process requests resources in an **increasing order of enumeration**.
 
-- **Not required for sharable resources** (for example read-only files).
-- **Must hold for non-sharable resources.**
-- So in general this condition **cannot be removed**.
-
-### 26.2 Hold and wait
-
-Guarantee that **whenever a process requests a resource, it does not hold any other resources**. Two protocols:
-
-1. require the process to **request and be allocated all its resources before it begins execution**; or
-2. allow a process to request resources **only when it has none allocated** to it.
-
-**Drawbacks:** **low resource utilization** and **starvation is possible**.
-
-### 26.3 No preemption
-
-- If a process that is holding some resources requests another resource that **cannot be immediately allocated**, then **all the resources it currently holds are released**.
-- The preempted resources are added to the **list of resources for which the process is waiting**.
-- The process is **restarted only when it can regain its old resources** as well as the new ones it is requesting.
-
-### 26.4 Circular wait
-
-![Slide: attacking circular wait](assets/w7-p22-attacking-circular-wait.png)
-
-**Impose a total ordering of all resource types, and require that each process requests resources in an increasing order of enumeration.**
-
-**Attacking circular wait (lecture slide):**
-
-- Assign an **order** (number) to the resources.
+**Attacking "circular wait" (slide):**
+- **Assign an order (number) to the resources.**
 - **Always acquire resources in numerical order.** They need not all be acquired at once.
-- Circular wait is prevented: a process holding resource `n` **cannot wait for resource `m` if `m < n`**.
-- There is **no way to complete a cycle**. Picture each process placed above the highest resource it holds and below any it is requesting: **all arrows point up**, so the chain can never loop back.
-
-```text
-Resources ordered A < B < C < D
-
-    D ●
-      ↑
-    C ●        Process holding B may request C or D,
-      ↑        but may never request A.
-    B ●
-      ↑
-    A ●        All arrows point up → no cycle possible.
-```
-
-**Proof idea:** in a circular wait `P0 → P1 → … → Pn → P0`, the resource numbers would have to satisfy `F(R0) < F(R1) < … < F(Rn) < F(R0)`, which is impossible.
-
-### 26.5 Summary of prevention
-
-| Condition attacked | How | Problem |
-|---|---|---|
-| Mutual exclusion | Make resources sharable | Not possible for non-sharable resources |
-| Hold and wait | Request all resources at once, or only when holding none | Low utilization; starvation |
-| No preemption | Release everything if a request cannot be granted | Only works for resources whose state can be saved and restored |
-| Circular wait | Total ordering; request in increasing order | Programmers must respect the order; disallows incremental requests in arbitrary order |
+- Circular wait is prevented: a process holding resource **n** cannot wait for resource **m** if **m < n**.
+- There is **no way to complete a cycle**: place processes above the highest resource they hold and below any they are requesting — **all arrows point up**.
 
 ---
 
-## 27. Deadlock avoidance
+## 7.5 Deadlock Avoidance
 
-### 27.1 A priori information
+Avoidance **requires some additional a priori (advance) information**.
+- The simplest and most useful model: each process **declares the maximum number of resources of each type** it may need.
+- The avoidance algorithm **dynamically checks the resource-allocation state** to make sure there can **never be a circular-wait condition**.
+- The **resource-allocation state** is defined by the number of **available** and **allocated** resources, and the **maximum demands** of the processes.
 
-Avoidance **requires that the system has some additional a priori information** available.
-
-- The simplest and most useful model requires each process to **declare the maximum number of resources of each type** that it may need.
-- The deadlock-avoidance algorithm **dynamically examines the resource-allocation state** to ensure that there can **never be a circular-wait condition**.
-- The **resource-allocation state** is defined by the number of **available** and **allocated** resources and the **maximum demands** of the processes.
-
-### 27.2 Safe state
-
-When a process requests an available resource, the system must decide whether **immediate allocation leaves the system in a safe state**.
-
-> The system is in a **safe state** if there exists a sequence `<P1, P2, …, Pn>` of **all** the processes such that, for each `Pi`, the resources that `Pi` can still request can be satisfied by the **currently available resources plus the resources held by all `Pj` with `j < i`**.
+### 7.5.1 Safe state
+- When a process requests an available resource, the system must decide whether **giving it immediately leaves the system in a safe state**.
+- The system is in a **safe state** if there is a sequence **<P1, P2, …, Pn>** of **ALL** the processes such that, for each Pi, the resources Pi can still request can be satisfied by **currently available resources + resources held by all Pj with j < i**.
 
 That is:
-
-- if `Pi`'s resource needs are not immediately available, `Pi` can **wait until all `Pj` have finished**;
-- when `Pj` finishes, `Pi` can obtain the needed resources, execute, return its allocated resources, and terminate;
-- when `Pi` terminates, `Pi+1` can obtain its needed resources, and so on.
-
-Such a sequence is called a **safe sequence**.
+- If Pi's needs are not immediately available, Pi can **wait until all Pj have finished**.
+- When Pj finishes, Pi can get the needed resources, run, **return its resources, and terminate**.
+- When Pi terminates, Pi+1 can get its needed resources, and so on.
 
 **Basic facts**
+- System in **safe state** ⇒ **no deadlock**.
+- System in **unsafe state** ⇒ **possibility of deadlock**.
+- **Avoidance** ⇒ make sure the system **never enters an unsafe state**.
 
-| State | Consequence |
-|---|---|
-| **Safe** state | **No deadlock** |
-| **Unsafe** state | **Possibility** of deadlock (not a certainty) |
-| **Avoidance** | Ensure the system **never enters an unsafe state** |
+*(The slide figure "Safe, Unsafe, Deadlock state" shows: deadlock states are a part of the unsafe states; safe and unsafe states do not overlap.)*
 
-```text
-┌──────────────────────────────────────────────┐
-│ unsafe                                        │
-│      ┌──────────────┐                         │
-│      │   deadlock   │                         │
-│      └──────────────┘                         │
-├──────────────────────────────────────────────┤
-│ safe                                          │
-│                                               │
-└──────────────────────────────────────────────┘
-Deadlock states are a subset of unsafe states. Safe and unsafe do not overlap.
-```
+### 7.5.2 Avoidance algorithms
+- **Single instance** of a resource type → use a **modified resource-allocation graph**.
+- **Multiple instances** of a resource type → use the **Banker's algorithm**.
 
-![Slide: safe, unsafe, and deadlock states](assets/w7-p26-safe-unsafe-deadlock.png)
-
-**Which algorithm?**
-
-| Situation | Algorithm |
-|---|---|
-| **Single instance** of each resource type | **Resource-allocation-graph** algorithm (modified RAG with claim edges) |
-| **Multiple instances** of a resource type | **Banker's algorithm** |
-
-### 27.3 Resource-allocation-graph algorithm
-
-![Slide: resource-allocation graph with claim edges](assets/w7-p29-rag-claim-edges.png)
-
-![Slide: unsafe state in a resource-allocation graph](assets/w7-p30-rag-unsafe.png)
-
-Three kinds of edge:
-
-| Edge | Drawn as | Meaning |
-|---|---|---|
-| **Claim edge** `Pi ⇢ Rj` | **Dashed** line | Process `Pi` **may request** resource `Rj` in the future |
-| **Request edge** `Pi → Rj` | Solid line | Process `Pi` **requests** `Rj` |
-| **Assignment edge** `Rj → Pi` | Solid line | `Rj` **was allocated** to `Pi` |
-
-Rules:
-
-- A **claim edge converts to a request edge** when the process requests the resource.
-- A **request edge converts to an assignment edge** when the resource is allocated.
-- When the resource is released, the **assignment edge reconverts to a claim edge**.
+### 7.5.3 Modified resource-allocation graph scheme (single instance)
+- **Claim edge Pi ⇢ Rj** (dashed) — Pi **may request** Rj in the future.
+- **Request edge Pi → Rj** — Pi **requests** Rj. A claim edge **converts to a request edge** when the process requests the resource.
+- **Assignment edge Rj → Pi** — Rj **was allocated** to Pi. A request edge **converts to an assignment edge** when the resource is allocated.
+- When the resource is released, the assignment edge **changes back to a claim edge**.
 - Resources must be **claimed a priori** in the system.
 
-**The algorithm:** suppose process `Pi` requests resource `Rj`. The request can be granted **only if converting the request edge to an assignment edge does not result in the formation of a cycle** in the resource-allocation graph (claim edges are included when checking).
+**Algorithm:** suppose Pi requests Rj. The request is **granted only if converting the request edge to an assignment edge does not form a cycle** in the graph.
 
-```mermaid
-flowchart LR
-    R1["R1"] -->|assigned| T1(("T1"))
-    T2(("T2")) -->|request| R1
-    T1 -. claim .-> R2["R2"]
-    T2 -. claim .-> R2
-```
+**Slide example:** R1 is assigned to T1, T2 requests R1, and both T1 and T2 have claim edges to R2. If T2 now requests R2, giving R2 to T2 would form a cycle, so it is **not granted** — the slide calls this an **unsafe state**. If T1 then requests R2, a deadlock would occur.
 
-In this state `R1` is held by `T1`, `T2` requests `R1`, and both may later claim `R2`. Suppose `T2` now requests `R2`. Although `R2` is free, **it cannot be given to `T2`**, because the assignment `R2 → T2` would create the cycle `T1 ⇢ R2 → T2 → R1 → T1`:
-
-```mermaid
-flowchart LR
-    R1["R1"] -->|assigned| T1(("T1"))
-    T2(("T2")) -->|request| R1
-    T1 -. claim .-> R2["R2"]
-    R2 -->|assigned| T2
-```
-
-This is an **unsafe state**. If `T1` then requests `R2`, a deadlock occurs.
-
-### 27.4 Banker's algorithm
-
-Used when resources have **multiple instances**.
-
-- Each process must **claim its maximum use a priori**.
+### 7.5.4 Banker's algorithm
+- For **multiple instances** of resources.
+- Each process must **claim its maximum use in advance**.
 - When a process requests a resource, it **may have to wait**.
 - When a process gets all its resources, it must **return them in a finite amount of time**.
 
-**Data structures** — let `n` = number of processes and `m` = number of resource types.
+**Data structures** (n = number of processes, m = number of resource types):
 
-| Structure | Size | Meaning |
-|---|---|---|
-| **Available** | Vector of length `m` | `Available[j] = k` → `k` instances of resource type `Rj` are available |
-| **Max** | `n × m` matrix | `Max[i,j] = k` → process `Pi` may request at most `k` instances of `Rj` |
-| **Allocation** | `n × m` matrix | `Allocation[i,j] = k` → `Pi` is currently allocated `k` instances of `Rj` |
-| **Need** | `n × m` matrix | `Need[i,j] = k` → `Pi` may need `k` more instances of `Rj` to complete its task |
+| Structure | Meaning |
+| --- | --- |
+| **Available** | Vector of length **m**. `Available[j] = k` → k instances of resource type Rj are available |
+| **Max** | **n × m** matrix. `Max[i,j] = k` → Pi may request **at most** k instances of Rj |
+| **Allocation** | **n × m** matrix. `Allocation[i,j] = k` → Pi is **currently allocated** k instances of Rj |
+| **Need** | **n × m** matrix. `Need[i,j] = k` → Pi may **need k more** instances of Rj to finish |
 
-> **`Need[i,j] = Max[i,j] − Allocation[i,j]`**
+> **Need = Max − Allocation**
 
-### 27.5 Safety algorithm
-
-Finds out whether the system is in a safe state.
-
-1. Let `Work` and `Finish` be vectors of length `m` and `n`. Initialize:
-   - `Work = Available`
-   - `Finish[i] = false` for `i = 0, 1, …, n−1`
-2. Find an `i` such that both:
-   - (a) `Finish[i] == false`
-   - (b) `Need_i ≤ Work`
-
-   If no such `i` exists, go to step 4.
+**Safety algorithm**
+1. Let **Work** and **Finish** be vectors of length m and n. Initialize: `Work = Available`; `Finish[i] = false` for i = 0, 1, …, n−1.
+2. Find an i such that both: (a) `Finish[i] = false` and (b) `Need_i ≤ Work`. If no such i exists, go to step 4.
 3. `Work = Work + Allocation_i`; `Finish[i] = true`; go to step 2.
-4. If `Finish[i] == true` for **all** `i`, the system is in a **safe state**.
+4. If `Finish[i] = true` for all i, the system is in a **safe state**.
 
-In plain words: pick any unfinished process whose remaining need fits in what is free, pretend it runs to completion and returns everything it holds, and repeat. If everyone can finish, the state is safe. The algorithm needs on the order of `m × n²` operations.
+*Easy reading:* pick any unfinished process whose remaining need fits in what is free; pretend it finishes and gives back everything it holds; repeat. If everyone can finish, the state is safe.
 
-### 27.6 Resource-request algorithm
+**Resource-request algorithm for process Pi**
+`Request_i` = request vector of Pi. If `Request_i[j] = k`, Pi wants k instances of Rj.
+1. If `Request_i ≤ Need_i`, go to step 2. Otherwise **raise an error** — the process has exceeded its maximum claim.
+2. If `Request_i ≤ Available`, go to step 3. Otherwise **Pi must wait**, since resources are not available.
+3. **Pretend** to allocate the requested resources to Pi by changing the state:
+   - `Available = Available − Request_i`
+   - `Allocation_i = Allocation_i + Request_i`
+   - `Need_i = Need_i − Request_i`
 
-Decides whether a request can be granted safely. `Request_i` is the request vector for `Pi`; `Request_i[j] = k` means `Pi` wants `k` instances of `Rj`.
+   Then run the safety algorithm:
+   - If **safe** ⇒ the resources are **allocated** to Pi.
+   - If **unsafe** ⇒ **Pi must wait**, and the **old resource-allocation state is restored**.
 
-1. If `Request_i ≤ Need_i`, go to step 2. Otherwise **raise an error**: the process has exceeded its maximum claim.
-2. If `Request_i ≤ Available`, go to step 3. Otherwise **`Pi` must wait**: the resources are not available.
-3. **Pretend** to allocate the requested resources to `Pi` by modifying the state:
+### 7.5.5 Example of Banker's algorithm
+5 processes P0–P4; 3 resource types: **A (10 instances), B (5 instances), C (7 instances)**.
 
-   ```text
-   Available    = Available    − Request_i
-   Allocation_i = Allocation_i + Request_i
-   Need_i       = Need_i       − Request_i
-   ```
+**Snapshot at time T0**
 
-   Run the safety algorithm on this new state.
-   - If **safe** → the resources are **allocated** to `Pi`.
-   - If **unsafe** → `Pi` **must wait**, and the **old resource-allocation state is restored**.
+| | Allocation (A B C) | Max (A B C) | Available (A B C) | Need = Max − Allocation (A B C) |
+| --- | --- | --- | --- | --- |
+| P0 | 0 1 0 | 7 5 3 | **3 3 2** | 7 4 3 |
+| P1 | 2 0 0 | 3 2 2 | | 1 2 2 |
+| P2 | 3 0 2 | 9 0 2 | | 6 0 0 |
+| P3 | 2 1 1 | 2 2 2 | | 0 1 1 |
+| P4 | 0 0 2 | 4 3 3 | | 4 3 1 |
 
-```mermaid
-flowchart TB
-    A["Request_i arrives"] --> B{"Request_i ≤ Need_i ?"}
-    B -- no --> E["Error: exceeded maximum claim"]
-    B -- yes --> C{"Request_i ≤ Available ?"}
-    C -- no --> W["Pi must wait"]
-    C -- yes --> D["Pretend to allocate"]
-    D --> S{"Safety algorithm: safe?"}
-    S -- yes --> G["Grant the request"]
-    S -- no --> R["Restore old state; Pi waits"]
-```
+**Is the system safe?** Work = (3 3 2).
 
----
+| Step | Pick | Check Need ≤ Work | Work after adding its Allocation |
+| --- | --- | --- | --- |
+| 1 | P1 | (1 2 2) ≤ (3 3 2) ✓ | (3 3 2) + (2 0 0) = (5 3 2) |
+| 2 | P3 | (0 1 1) ≤ (5 3 2) ✓ | (5 3 2) + (2 1 1) = (7 4 3) |
+| 3 | P4 | (4 3 1) ≤ (7 4 3) ✓ | (7 4 3) + (0 0 2) = (7 4 5) |
+| 4 | P2 | (6 0 0) ≤ (7 4 5) ✓ | (7 4 5) + (3 0 2) = (10 4 7) |
+| 5 | P0 | (7 4 3) ≤ (10 4 7) ✓ | (10 4 7) + (0 1 0) = (10 5 7) |
 
-## 28. Banker's algorithm: solved examples
+The system is in a **safe state**; the safe sequence is **<P1, P3, P4, P2, P0>**.
 
-### 28.1 Example 1 — the textbook example (5 processes, 3 resource types)
+**Now P1 requests (1, 0, 2).**
+1. `Request ≤ Need`? (1 0 2) ≤ (1 2 2) ✓
+2. `Request ≤ Available`? (1 0 2) ≤ (3 3 2) ✓
+3. Pretend to allocate. New state:
 
-5 processes `P0`–`P4`; 3 resource types: **A (10 instances), B (5 instances), C (7 instances)**.
+| | Allocation | Need | Available |
+| --- | --- | --- | --- |
+| P0 | 0 1 0 | 7 4 3 | **2 3 0** |
+| P1 | **3 0 2** | **0 2 0** | |
+| P2 | 3 0 2 | 6 0 0 | |
+| P3 | 2 1 1 | 0 1 1 | |
+| P4 | 0 0 2 | 4 3 1 | |
 
-**Snapshot at time T0:**
+Safety check from Work = (2 3 0): P1 (0 2 0) → Work (5 3 2); P3 → (7 4 3); P4 → (7 4 5); P0 → (7 5 5); P2 → (10 5 7). The sequence **<P1, P3, P4, P0, P2>** is safe, so **the request is granted immediately**.
 
-| Process | Allocation (A B C) | Max (A B C) | Need = Max − Allocation (A B C) |
-|---|---|---|---|
-| P0 | 0 1 0 | 7 5 3 | 7 4 3 |
-| P1 | 2 0 0 | 3 2 2 | 1 2 2 |
-| P2 | 3 0 2 | 9 0 2 | 6 0 0 |
-| P3 | 2 1 1 | 2 2 2 | 0 1 1 |
-| P4 | 0 0 2 | 4 3 3 | 4 3 1 |
+**Questions on the slide (in the state after P1's request was granted):**
+- **Can P4's request (3, 3, 0) be granted?** `Request ≤ Need` ✓ ((3 3 0) ≤ (4 3 1)) but `Request ≤ Available`? (3 3 0) ≤ (2 3 0) ✗ — only 2 of A are free. **No — P4 must wait.**
+- **Can P0's request (0, 2, 0) be granted?** (0 2 0) ≤ Need (7 4 3) ✓ and ≤ Available (2 3 0) ✓. Pretend: Available = (2 1 0), P0 Allocation = (0 3 0), P0 Need = (7 2 3). Now check: P0 (7 2 3), P1 (0 2 0), P2 (6 0 0), P3 (0 1 1), P4 (4 3 1) — **none** of these fit in Work (2 1 0). The state is **unsafe**, so **the request is not granted**; P0 must wait and the old state is restored.
 
-**Available = (3, 3, 2)**
+### 7.5.6 Safe and unsafe state examples (slides)
 
-*Check:* total allocated = (7, 2, 5); total − allocated = (10, 5, 7) − (7, 2, 5) = (3, 3, 2). ✓
+**Q1. Determination of a safe state**
+Here **C** = claim matrix (maximum claim of each process), **A** = allocation matrix, **C − A** = what each process may still need, **R** = total resource vector, **V** = available vector.
 
-**(a) Is the system in a safe state?** Run the safety algorithm with `Work = (3, 3, 2)`.
+Initial state: R = (9 3 6), V = (0 1 1).
 
-| Step | Process chosen | Need ≤ Work? | Work after it finishes (Work + Allocation) |
-|---|---|---|---|
-| 1 | **P1** | (1,2,2) ≤ (3,3,2) ✓ | (3,3,2) + (2,0,0) = **(5,3,2)** |
-| 2 | **P3** | (0,1,1) ≤ (5,3,2) ✓ | (5,3,2) + (2,1,1) = **(7,4,3)** |
-| 3 | **P4** | (4,3,1) ≤ (7,4,3) ✓ | (7,4,3) + (0,0,2) = **(7,4,5)** |
-| 4 | **P2** | (6,0,0) ≤ (7,4,5) ✓ | (7,4,5) + (3,0,2) = **(10,4,7)** |
-| 5 | **P0** | (7,4,3) ≤ (10,4,7) ✓ | (10,4,7) + (0,1,0) = **(10,5,7)** |
-
-All processes finish. **The system is in a safe state; safe sequence `<P1, P3, P4, P2, P0>`.** (The final `Work` equals the total resources, a useful self-check.)
-
-**(b) P1 requests (1, 0, 2).**
-
-1. `Request ≤ Need`? (1,0,2) ≤ (1,2,2) ✓
-2. `Request ≤ Available`? (1,0,2) ≤ (3,3,2) ✓
-3. Pretend to allocate:
-
-| Process | Allocation (A B C) | Need (A B C) |
-|---|---|---|
-| P0 | 0 1 0 | 7 4 3 |
-| **P1** | **3 0 2** | **0 2 0** |
-| P2 | 3 0 2 | 6 0 0 |
-| P3 | 2 1 1 | 0 1 1 |
-| P4 | 0 0 2 | 4 3 1 |
-
-**Available = (2, 3, 0)**
-
-Safety algorithm with `Work = (2, 3, 0)`:
-
-| Step | Process | Need ≤ Work? | New Work |
-|---|---|---|---|
-| 1 | P1 | (0,2,0) ≤ (2,3,0) ✓ | (5,3,2) |
-| 2 | P3 | (0,1,1) ≤ (5,3,2) ✓ | (7,4,3) |
-| 3 | P4 | (4,3,1) ≤ (7,4,3) ✓ | (7,4,5) |
-| 4 | P0 | (7,4,3) ≤ (7,4,5) ✓ | (7,5,5) |
-| 5 | P2 | (6,0,0) ≤ (7,5,5) ✓ | (10,5,7) |
-
-Safe sequence `<P1, P3, P4, P0, P2>`. **The request is granted immediately.**
-
-**(c) Can a request for (3, 3, 0) by P4 be granted?** (state after part b)
-
-- `Request ≤ Need`? (3,3,0) ≤ (4,3,1) ✓
-- `Request ≤ Available`? (3,3,0) ≤ (2,3,0) ✗ (3 > 2 for A)
-
-**No. The resources are not available, so P4 must wait.**
-
-**(d) Can a request for (0, 2, 0) by P0 be granted?** (state after part b)
-
-- `Request ≤ Need`? (0,2,0) ≤ (7,4,3) ✓
-- `Request ≤ Available`? (0,2,0) ≤ (2,3,0) ✓
-- Pretend: Available = (2,1,0); P0 Allocation = (0,3,0); P0 Need = (7,2,3).
-- Safety check with `Work = (2,1,0)`:
-  - P0 needs (7,2,3) ✗; P1 needs (0,2,0) ✗ (B: 2 > 1); P2 needs (6,0,0) ✗; P3 needs (0,1,1) ✗ (C: 1 > 0); P4 needs (4,3,1) ✗.
-  - No process can finish.
-
-**No. The resulting state is unsafe, so the request is denied; P0 must wait and the old state is restored.**
-
-### 28.2 Example 2 — determination of a safe state (4 processes, 3 resources)
-
-![Slide: (a) initial state](assets/w7-p42-safe-state-a.png)
-
-![Slide: (b) P2 runs to completion](assets/w7-p43-safe-state-b.png)
-
-![Slide: (c) P1 runs to completion](assets/w7-p44-safe-state-c.png)
-
-![Slide: (d) P3 runs to completion](assets/w7-p45-safe-state-d.png)
-
-This example uses Stallings' notation: **Claim matrix C** (= Max), **Allocation matrix A**, **C − A** (= Need), **Resource vector R** (total), **Available vector V**.
-
-**(a) Initial state** — `R = (9, 3, 6)`, `V = (0, 1, 1)`
-
-| Process | Claim C (R1 R2 R3) | Allocation A (R1 R2 R3) | C − A (R1 R2 R3) |
-|---|---|---|---|
+| | C (R1 R2 R3) | A | C − A |
+| --- | --- | --- | --- |
 | P1 | 3 2 2 | 1 0 0 | 2 2 2 |
 | P2 | 6 1 3 | 6 1 2 | 0 0 1 |
 | P3 | 3 1 4 | 2 1 1 | 1 0 3 |
 | P4 | 4 2 2 | 0 0 2 | 4 2 0 |
 
-**Step-by-step**
+| Step | Who can run to completion | Reason | New V |
+| --- | --- | --- | --- |
+| (a) → (b) | **P2** | C−A = (0 0 1) ≤ V = (0 1 1) | (6 2 3) |
+| (b) → (c) | **P1** | (2 2 2) ≤ (6 2 3) | (7 2 3) |
+| (c) → (d) | **P3** | (1 0 3) ≤ (7 2 3) | (9 3 4) |
+| (d) → end | **P4** | (4 2 0) ≤ (9 3 4) | (9 3 6) |
 
-| Step | Who can run? | Reason | Available after completion |
-|---|---|---|---|
-| (b) | **P2** | Need (0,0,1) ≤ V (0,1,1) | (0,1,1) + (6,1,2) = **(6,2,3)** |
-| (c) | **P1** | Need (2,2,2) ≤ (6,2,3) | (6,2,3) + (1,0,0) = **(7,2,3)** |
-| (d) | **P3** | Need (1,0,3) ≤ (7,2,3) | (7,2,3) + (2,1,1) = **(9,3,4)** |
-| (e) | **P4** | Need (4,2,0) ≤ (9,3,4) | (9,3,4) + (0,0,2) = **(9,3,6)** = R ✓ |
+All processes finish, so the state is **safe** (sequence P2, P1, P3, P4).
 
-Initially only `P2` can run: `P1` needs 2 units of R1, `P3` needs 1 unit of R1, and `P4` needs 4 units of R1, but 0 are available.
+**Determination of an unsafe state**
+Initial state (a): R = (9 3 6), V = (1 1 2). Allocation: P1 (1 0 0), P2 (5 1 1), P3 (2 1 1), P4 (0 0 2). C − A: P1 (2 2 2), P2 (1 0 2), P3 (1 0 3), P4 (4 2 0).
 
-**The state is safe. Safe sequence: `<P2, P1, P3, P4>`.**
+**(b) P1 requests one unit each of R1 and R3.** If granted: P1 Allocation = (2 0 1), V = (0 1 1), P1's C − A = (1 2 1). Now check each process against V = (0 1 1): P1 needs (1 2 1) ✗, P2 needs (1 0 2) ✗, P3 needs (1 0 3) ✗, P4 needs (4 2 0) ✗. **No process can finish → unsafe state**, so this request should not be granted.
 
-### 28.3 Example 3 — determination of an unsafe state
+**Question on the slide:** a system uses the Banker's algorithm. P0, P1, P2 are processes and R0, R1, R2 are resource types.
 
-![Slide: determination of an unsafe state](assets/w7-p46-unsafe-state.png)
+| | Maximum need (R0 R1 R2) | Current allocation (R0 R1 R2) | Need = Max − Allocation |
+| --- | --- | --- | --- |
+| P0 | 4 1 2 | 1 0 2 | 3 1 0 |
+| P1 | 1 5 1 | 0 3 1 | 1 2 0 |
+| P2 | 1 2 3 | 1 0 2 | 0 2 1 |
 
-**(a) Initial state** — `R = (9, 3, 6)`, `V = (1, 1, 2)`
+Available = (2 2 0).
 
-| Process | Claim C | Allocation A | C − A |
-|---|---|---|---|
-| P1 | 3 2 2 | 1 0 0 | 2 2 2 |
-| P2 | 6 1 3 | 5 1 1 | 1 0 2 |
-| P3 | 3 1 4 | 2 1 1 | 1 0 3 |
-| P4 | 4 2 2 | 0 0 2 | 4 2 0 |
+**(a) Show that the system can be in this state.** The state is safe if some order lets everybody finish. Work = (2 2 0): P1 needs (1 2 0) ≤ (2 2 0) ✓ → Work = (2 5 1); P2 needs (0 2 1) ≤ (2 5 1) ✓ → Work = (3 5 3); P0 needs (3 1 0) ≤ (3 5 3) ✓. The sequence **<P1, P2, P0>** is a safe sequence, so the system can be in this state.
 
-**(b) P1 requests one unit each of R1 and R3**, that is `Request = (1, 0, 1)`.
-
-- `Request ≤ Need`? (1,0,1) ≤ (2,2,2) ✓
-- `Request ≤ Available`? (1,0,1) ≤ (1,1,2) ✓
-- Pretend to allocate → `V = (0, 1, 1)`:
-
-| Process | Claim C | Allocation A | C − A |
-|---|---|---|---|
-| P1 | 3 2 2 | **2 0 1** | **1 2 1** |
-| P2 | 6 1 3 | 5 1 1 | 1 0 2 |
-| P3 | 3 1 4 | 2 1 1 | 1 0 3 |
-| P4 | 4 2 2 | 0 0 2 | 4 2 0 |
-
-**Safety check with `V = (0, 1, 1)`:** every process still needs **at least 1 unit of R1** (P1: 1, P2: 1, P3: 1, P4: 4), but **0 units of R1 are available**. No process can run to completion.
-
-**The state is unsafe, so the request must be denied and P1 is blocked.**
-
-> **Important:** unsafe does **not** mean deadlocked. If `P1` were to release its R1 and R3 before asking for more, the system could return to a safe state. Unsafe only means deadlock has become **possible**.
-
-### 28.4 Example 4 — practice problem from the slides (3 processes, 3 resources)
-
-![Slide: Banker's algorithm practice problem](assets/w7-p47-bankers-practice.png)
-
-A computer system uses the Banker's algorithm. Its current state:
-
-| Process | Maximum Need (R0 R1 R2) | Current Allocation (R0 R1 R2) |
-|---|---|---|
-| P0 | 4 1 2 | 1 0 2 |
-| P1 | 1 5 1 | 0 3 1 |
-| P2 | 1 2 3 | 1 0 2 |
-
-**Available = (2, 2, 0)**
-
-**(a) Show that the system can be in this state** (that is, the state is safe).
-
-`Need = Max − Allocation`:
-
-| Process | Need (R0 R1 R2) |
-|---|---|
-| P0 | 3 1 0 |
-| P1 | 1 2 0 |
-| P2 | 0 2 1 |
-
-Safety algorithm with `Work = (2, 2, 0)`:
-
-| Step | Process | Need ≤ Work? | New Work |
-|---|---|---|---|
-| 1 | P0 | (3,1,0) ≤ (2,2,0)? ✗ (3 > 2) | — |
-| 1 | **P1** | (1,2,0) ≤ (2,2,0) ✓ | (2,2,0) + (0,3,1) = **(2,5,1)** |
-| 2 | **P2** | (0,2,1) ≤ (2,5,1) ✓ | (2,5,1) + (1,0,2) = **(3,5,3)** |
-| 3 | **P0** | (3,1,0) ≤ (3,5,3) ✓ | (3,5,3) + (1,0,2) = **(4,5,5)** |
-
-**Safe sequence `<P1, P2, P0>`. The state is safe, so the system can be in this state.** (Total resources = (4, 5, 5).)
-
-**(b) What will the system do on a request by P0 for one unit of resource type R1?** `Request_0 = (0, 1, 0)`.
-
-1. `Request ≤ Need_0`? (0,1,0) ≤ (3,1,0) ✓
-2. `Request ≤ Available`? (0,1,0) ≤ (2,2,0) ✓
-3. Pretend: `Available = (2,1,0)`; `Allocation_0 = (1,1,2)`; `Need_0 = (3,0,0)`.
-4. Safety check with `Work = (2, 1, 0)`:
-   - P0 needs (3,0,0) ✗ (3 > 2)
-   - P1 needs (1,2,0) ✗ (R1: 2 > 1)
-   - P2 needs (0,2,1) ✗ (R1: 2 > 1, R2: 1 > 0)
-
-No process can finish. **The new state would be unsafe, so the system denies the request; P0 must wait and the original state is kept.**
+**(b) What will the system do on a request by P0 for one unit of R1?** Request = (0 1 0). It is ≤ Need (3 1 0) and ≤ Available (2 2 0). Pretend: Available = (2 1 0), P0 Allocation = (1 1 2), P0 Need = (3 0 0). Check: P0 (3 0 0) ✗, P1 (1 2 0) ✗ (needs 2 of R1, only 1 free), P2 (0 2 1) ✗. The state is **unsafe**, so the system **will not grant the request; P0 has to wait**.
 
 ---
 
-## 29. Deadlock detection
+## 7.6 Deadlock Detection
 
-If the system uses neither prevention nor avoidance, it must:
+The system is **allowed to enter a deadlock state**; then a **detection algorithm** finds it and a **recovery scheme** fixes it.
 
-1. **allow the system to enter a deadlock state**;
-2. run a **detection algorithm**;
-3. apply a **recovery scheme**.
+### 7.6.1 Single instance of each resource type — wait-for graph
+- Maintain a **wait-for graph**:
+  - **Nodes are processes.**
+  - **Pi → Pj** if Pi is waiting for Pj.
+- **Periodically run an algorithm that searches for a cycle** in the graph. If there is a cycle, **there is a deadlock**.
+- A cycle-detection algorithm needs about **n² operations**, where n is the number of vertices.
+- *(The slide shows a resource-allocation graph and its corresponding wait-for graph: the resource nodes are removed and only the "who waits for whom" arrows between processes remain.)*
 
-### 29.1 Single instance of each resource type: wait-for graph
-
-![Slide: resource-allocation graph and wait-for graph](assets/w7-p50-wait-for-graph.png)
-
-- Maintain a **wait-for graph**.
-  - The **nodes are processes**.
-  - There is an edge **`Pi → Pj` if `Pi` is waiting for `Pj`**.
-- **Periodically** invoke an algorithm that searches for a **cycle** in the graph. **If there is a cycle, there is a deadlock.**
-- Detecting a cycle in a graph requires on the order of **`n²` operations**, where `n` is the number of vertices.
-
-The wait-for graph is obtained from the resource-allocation graph by **removing the resource nodes and collapsing the edges**: `Pi → Rq` and `Rq → Pj` become `Pi → Pj`.
-
-```mermaid
-flowchart LR
-    subgraph RAG["Resource-allocation graph"]
-        A1(("P1")) --> X1["R1"]
-        X1 --> A2(("P2"))
-        A2 --> X2["R2"]
-        X2 --> A1
-    end
-    subgraph WFG["Corresponding wait-for graph"]
-        B1(("P1")) --> B2(("P2"))
-        B2 --> B1
-    end
-```
-
-### 29.2 Several instances of a resource type
-
+### 7.6.2 Several instances of a resource type
 Data structures:
-
-| Structure | Meaning |
-|---|---|
-| **Available** | Vector of length `m`: number of available resources of each type |
-| **Allocation** | `n × m` matrix: number of resources of each type currently allocated to each process |
-| **Request** | `n × m` matrix: the **current request** of each process. `Request[i][j] = k` means `Pi` is requesting `k` more instances of `Rj`. |
+- **Available** — vector of length m: number of available resources of each type.
+- **Allocation** — **n × m** matrix: resources of each type currently allocated to each process.
+- **Request** — **n × m** matrix: the **current request** of each process. If `Request[i][j] = k`, process Pi is requesting **k more instances** of Rj.
 
 **Detection algorithm**
-
-1. Let `Work` and `Finish` be vectors of length `m` and `n`. Initialize:
+1. Let **Work** and **Finish** be vectors of length m and n. Initialize:
    - (a) `Work = Available`
-   - (b) for `i = 1, 2, …, n`: if `Allocation_i ≠ 0` then `Finish[i] = false`; otherwise `Finish[i] = true`
-2. Find an index `i` such that both:
-   - (a) `Finish[i] == false`
-   - (b) `Request_i ≤ Work`
-
-   If no such `i` exists, go to step 4.
+   - (b) For i = 1, 2, …, n: if `Allocation_i ≠ 0` then `Finish[i] = false`; otherwise `Finish[i] = true`.
+2. Find an index i such that both: (a) `Finish[i] == false` and (b) `Request_i ≤ Work`. If no such i exists, go to step 4.
 3. `Work = Work + Allocation_i`; `Finish[i] = true`; go to step 2.
-4. If `Finish[i] == false` for some `i`, the system is in a **deadlock state**. Moreover, each `Pi` with `Finish[i] == false` is **deadlocked**.
+4. If `Finish[i] == false` for some i (1 ≤ i ≤ n), the system is in a **deadlock state**. Moreover, if `Finish[i] == false`, then **Pi is deadlocked**.
 
-The algorithm requires on the order of **`O(m × n²)`** operations.
+The algorithm needs about **O(m × n²)** operations to detect whether the system is deadlocked.
 
-**Detection vs safety algorithm**
+*Easy reading:* it is like the safety algorithm, but it uses what the processes are **actually requesting now** (Request) instead of their maximum possible need. A process holding nothing cannot be part of a deadlock, so it starts as finished.
 
-| Safety algorithm (avoidance) | Detection algorithm |
-|---|---|
-| Uses **Need** (future maximum demand) | Uses **Request** (what is being asked for right now) |
-| `Finish[i] = false` for all `i` at the start | `Finish[i] = true` at the start if the process holds nothing |
-| Answers: could a deadlock occur in the **future**? | Answers: is there a deadlock **now**? |
+### 7.6.3 Example of the detection algorithm
+5 processes P0–P4; 3 resource types **A (7), B (2), C (6)**. Snapshot at T0:
 
-### 29.3 Example of the detection algorithm
+| | Allocation (A B C) | Request (A B C) | Available (A B C) |
+| --- | --- | --- | --- |
+| P0 | 0 1 0 | 0 0 0 | **0 0 0** |
+| P1 | 2 0 0 | 2 0 2 | |
+| P2 | 3 0 3 | 0 0 0 | |
+| P3 | 2 1 1 | 1 0 0 | |
+| P4 | 0 0 2 | 0 0 2 | |
 
-Five processes `P0`–`P4`; three resource types **A (7 instances), B (2 instances), C (6 instances)**.
+Work = (0 0 0): P0 (0 0 0) ✓ → (0 1 0); P2 (0 0 0) ✓ → (3 1 3); P3 (1 0 0) ✓ → (5 2 4); P1 (2 0 2) ✓ → (7 2 4); P4 (0 0 2) ✓ → (7 2 6). The sequence **<P0, P2, P3, P1, P4>** gives `Finish[i] = true` for all i → **no deadlock**.
 
-**Snapshot at time T0:**
+**Now P2 requests one more instance of type C.** Request matrix: P0 (0 0 0), P1 (2 0 2), P2 **(0 0 1)**, P3 (1 0 0), P4 (0 0 2).
+- State of the system? We can **take back the resources held by P0**, but there are **not enough resources to satisfy the requests of the other processes**.
+- **A deadlock exists, consisting of P1, P2, P3 and P4.**
 
-| Process | Allocation (A B C) | Request (A B C) |
-|---|---|---|
-| P0 | 0 1 0 | 0 0 0 |
-| P1 | 2 0 0 | 2 0 2 |
-| P2 | 3 0 3 | 0 0 0 |
-| P3 | 2 1 1 | 1 0 0 |
-| P4 | 0 0 2 | 0 0 2 |
+### 7.6.4 Detection-algorithm usage
+When and how often to run it depends on:
+- **How often a deadlock is likely to occur.**
+- **How many processes will need to be rolled back** — one for each disjoint cycle.
 
-**Available = (0, 0, 0)**
+If the detection algorithm is run **at arbitrary times**, there may be many cycles in the resource graph, and we **cannot tell which of the many deadlocked processes "caused" the deadlock**.
 
-| Step | Process | Request ≤ Work? | New Work |
-|---|---|---|---|
-| 1 | P0 | (0,0,0) ≤ (0,0,0) ✓ | (0,1,0) |
-| 2 | P2 | (0,0,0) ≤ (0,1,0) ✓ | (3,1,3) |
-| 3 | P3 | (1,0,0) ≤ (3,1,3) ✓ | (5,2,4) |
-| 4 | P1 | (2,0,2) ≤ (5,2,4) ✓ | (7,2,4) |
-| 5 | P4 | (0,0,2) ≤ (7,2,4) ✓ | (7,2,6) |
+### 7.6.5 Question: deadlock detection (solve) — slide
+5 resource types; Request matrix Q, Allocation matrix A:
 
-The sequence **`<P0, P2, P3, P1, P4>`** gives `Finish[i] = true` for all `i`. **No deadlock.**
-
-**Now suppose P2 requests one additional instance of type C:**
-
-| Process | Request (A B C) |
-|---|---|
-| P0 | 0 0 0 |
-| P1 | 2 0 2 |
-| **P2** | **0 0 1** |
-| P3 | 1 0 0 |
-| P4 | 0 0 2 |
-
-State of the system?
-
-- `P0` can finish; reclaiming its resources gives `Work = (0, 1, 0)`.
-- That is **insufficient** to fulfil any other process's request (P1 needs A and C, P2 needs C, P3 needs A, P4 needs C).
-
-**A deadlock exists, consisting of processes P1, P2, P3, and P4.**
-
-### 29.4 Practice question from the slides (4 processes, 5 resources)
-
-![Slide: deadlock-detection question](assets/w7-p57-detection-practice.png)
-
-**Request matrix Q** and **Allocation matrix A**:
-
-| Process | Request Q (R1 R2 R3 R4 R5) | Allocation A (R1 R2 R3 R4 R5) |
-|---|---|---|
+| | Q (R1 R2 R3 R4 R5) | A (R1 R2 R3 R4 R5) |
+| --- | --- | --- |
 | P1 | 0 1 0 0 1 | 1 0 1 1 0 |
 | P2 | 0 0 1 0 1 | 1 1 0 0 0 |
 | P3 | 0 0 0 0 1 | 0 0 0 1 0 |
 | P4 | 1 0 1 0 1 | 0 0 0 0 0 |
 
-**Resource vector = (2, 1, 1, 2, 1)**; **Available vector = (0, 0, 0, 0, 1)** (labelled "Allocation vector" on the slide).
+Resource vector = (2 1 1 2 1). The slide's last vector (0 0 0 0 1) is the **free resources** (total minus all allocated).
 
-*Check:* column sums of A = (2, 1, 1, 2, 0); resource − allocated = (0, 0, 0, 0, 1). ✓
-
-**Solution**
-
-1. **Mark P4**, because it has no allocated resources (`Allocation_4 = 0`, so `Finish[4] = true`). It cannot be part of a deadlock.
-2. Set `Work = Available = (0, 0, 0, 0, 1)`.
-3. `P3`: Request (0,0,0,0,1) ≤ Work (0,0,0,0,1) ✓ → **mark P3**; `Work = (0,0,0,0,1) + (0,0,0,1,0) = (0, 0, 0, 1, 1)`.
-4. `P1`: Request (0,1,0,0,1) ≤ (0,0,0,1,1)? ✗ (needs R2).
-5. `P2`: Request (0,0,1,0,1) ≤ (0,0,0,1,1)? ✗ (needs R3).
-6. No other unmarked process can proceed. The algorithm terminates.
-
-**P1 and P2 remain unmarked, so P1 and P2 are deadlocked.** (P1 holds R3, which P2 wants; P2 holds R2, which P1 wants.)
-
-### 29.5 Detection-algorithm usage
-
-When, and how often, to invoke the detection algorithm depends on:
-
-- **How often** is a deadlock likely to occur?
-- **How many processes** will need to be rolled back? (One for each disjoint cycle.)
-
-If the detection algorithm is invoked **arbitrarily**, there may be **many cycles** in the resource graph, and we would not be able to tell **which of the many deadlocked processes "caused" the deadlock**.
-
-Trade-off: invoking it on every request finds the culprit immediately but is expensive; invoking it rarely is cheap but lets deadlocks linger and grow.
+**Solution:** Work = (0 0 0 0 1). P4 holds nothing, so `Finish[P4] = true` at the start. P3's request (0 0 0 0 1) ≤ Work ✓ → P3 finishes and returns (0 0 0 1 0) → Work = (0 0 0 1 1). P1 needs (0 1 0 0 1): R2 is not free ✗. P2 needs (0 0 1 0 1): R3 is not free ✗. So `Finish[P1] = Finish[P2] = false` → **P1 and P2 are deadlocked.**
 
 ---
 
-## 30. Recovery from deadlock
+## 7.7 Recovery from Deadlock
 
-### 30.1 Process termination
+### 7.7.1 Process termination
+- **Abort all deadlocked processes**, or
+- **Abort one process at a time** until the deadlock cycle is removed.
+- **In which order should we choose processes to abort?**
+  - **Priority** of the process
+  - **How long the process has computed**, and how much longer to completion
+  - **Resources the process has used**
+  - **Resources the process needs** to complete
+  - **How many processes will need to be terminated**
+  - Is the process **interactive or batch**?
 
-Two options:
-
-1. **Abort all deadlocked processes.** Simple but expensive, since all partial computation is lost.
-2. **Abort one process at a time until the deadlock cycle is eliminated.** The detection algorithm must be re-run after each abort.
-
-**In which order should we choose to abort?**
-
-1. **Priority** of the process.
-2. **How long** the process has computed, and **how much longer** to completion.
-3. **Resources the process has used.**
-4. **Resources the process needs** to complete.
-5. **How many processes** will need to be terminated.
-6. Is the process **interactive or batch**?
-
-### 30.2 Resource preemption
-
-Take resources away from some processes and give them to others until the deadlock is broken. Three issues:
-
-| Issue | Meaning |
-|---|---|
-| **Selecting a victim** | Choose which resources and processes to preempt so as to **minimize cost** |
-| **Rollback** | Return the victim to **some safe state** and **restart** it from that state |
-| **Starvation** | The same process may **always be picked as the victim**. Fix: include the **number of rollbacks in the cost factor**. |
+### 7.7.2 Resource preemption
+- **Selecting a victim** — choose so that the **cost is minimum**.
+- **Rollback** — return to some **safe state** and restart the process from that state.
+- **Starvation** — the same process may always be picked as the victim, so include the **number of rollbacks in the cost factor**.
 
 ---
 
-## 31. Prevention vs avoidance vs detection
-
-### 31.1 Summary table from the slides (advantages and disadvantages)
-
-![Slide: advantages and disadvantages](assets/w7-p60-advantages-disadvantages.png)
+## 7.8 Advantages and Disadvantages of the Approaches (slide table)
 
 | Approach | Resource-allocation policy | Different schemes | Major advantages | Major disadvantages |
-|---|---|---|---|---|
-| **Prevention** | Conservative; undercommits resources | **Requesting all resources at once** | Works well for processes that perform a single burst of activity; no preemption necessary | Inefficient; delays process initiation; future resource requirements must be known by processes |
+| --- | --- | --- | --- | --- |
+| **Prevention** | Conservative; **undercommits resources** | **Requesting all resources at once** | Works well for processes that do a single burst of activity; no preemption necessary | Inefficient; delays process initiation; future resource requirements must be known by processes |
 | | | **Preemption** | Convenient when applied to resources whose state can be saved and restored easily | Preempts more often than necessary |
 | | | **Resource ordering** | Feasible to enforce via compile-time checks; needs no run-time computation since the problem is solved in system design | Disallows incremental resource requests |
-| **Avoidance** | Midway between detection and prevention | **Manipulate to find at least one safe path** | No preemption necessary | Future resource requirements must be known by the OS; processes can be blocked for long periods |
-| **Detection** | Very liberal; requested resources are granted where possible | **Invoke periodically to test for deadlock** | Never delays process initiation; facilitates online handling | Inherent preemption losses |
+| **Avoidance** | **Midway** between detection and prevention | Manipulate to **find at least one safe path** | No preemption necessary | Future resource requirements must be known by the OS; processes can be blocked for long periods |
+| **Detection** | **Very liberal**; requested resources are granted where possible | **Invoke periodically** to test for deadlock | Never delays process initiation; facilitates online handling | Inherent preemption losses |
 
-### 31.2 Quick comparison
+---
+---
 
-| Aspect | Prevention | Avoidance | Detection and recovery |
-|---|---|---|---|
-| Idea | Break one of the four conditions | Never enter an unsafe state | Let it happen, then fix it |
-| Information needed | None in advance | Maximum claim of each process | Current allocation and requests |
-| When the decision is made | Design time (static rules) | Each request (dynamic) | Periodically |
-| Resource utilization | Lowest | Medium | Highest |
-| Algorithm | Protocol rules (ordering, all-at-once) | RAG algorithm; Banker's | Wait-for graph; detection algorithm |
-| Main cost | Low utilization, starvation | Run-time overhead, must know Max | Lost work on abort or rollback |
+# WEEK 8 — MEMORY MANAGEMENT
+
+## 8.1 Background
+
+### 8.1.1 Basics
+- Every instruction must be **fetched from memory** before it can run, and most instructions also **read data from memory or store data in memory** (or both).
+- **Multitasking** makes memory management harder, because processes are **swapped in and out of the CPU** at high speed without disturbing other processes.
+- **Shared memory, virtual memory, read-only vs read-write memory, and copy-on-write forking** make it even more complex.
+- The **CPU can access only its registers and main memory.** It cannot directly use the hard drive, so data on the disk must **first be moved to main memory** before the CPU can work with it.
+- **Register access** takes **one CPU clock (or less)**.
+- **Main memory** can take **many cycles**, causing a **stall**.
+- **Cache** sits between main memory and the CPU registers.
+- **Protection of memory** is required for correct operation.
+
+### 8.1.2 Base and limit registers
+- User processes must be **restricted to the memory locations that belong to them.**
+- A pair of **base and limit registers** defines the **logical address space** of each process.
+- **Every memory access** by a process is checked against these two registers; if a user process tries to access memory **outside the valid range**, a **fatal error** is generated.
+- **Changing the base and limit registers is a privileged activity**, allowed only to the **OS kernel**.
+
+**Hardware address protection (figure):** the CPU address is compared with `base` (address ≥ base?) and with `base + limit` (address < base + limit?). If both checks say **yes**, the access goes to memory; if either says **no**, there is a **trap to the operating system — addressing error**.
+
+### 8.1.3 Address binding
+- Programs on disk waiting to be brought into memory form an **input queue**.
+  - Without support, a program must be loaded at address **0000**.
+- It is inconvenient if the first user process always has physical address 0000.
+- Addresses are written differently at different stages of a program's life:
+  - **Source code** addresses are usually **symbolic**.
+  - **Compiled code** addresses bind to **relocatable addresses** — e.g. "14 bytes from the beginning of this module".
+  - The **linker or loader** binds relocatable addresses to **absolute addresses** — e.g. 74014.
+  - **Each binding maps one address space to another.**
+
+**Binding of instructions and data to memory can happen at three stages:**
+
+| Stage | Meaning |
+| --- | --- |
+| **Compile time** | If it is known at compile time where the program will be in physical memory, the compiler generates **absolute code** with actual physical addresses. If the load address changes later, the program must be **recompiled**. (DOS .COM programs use compile-time binding.) |
+| **Load time** | If the load location is not known at compile time, the compiler generates **relocatable code** (addresses relative to the start of the program). If the starting address changes, the program must be **reloaded but not recompiled**. |
+| **Execution time** | If the program can be **moved in memory while it runs**, binding is **delayed until execution time**. This needs **special hardware** and is the method used by **most modern OSs**. |
+
+**Multistep processing of a user program (figure):** source program → compiler/assembler → object module → linker (with other object modules and system libraries) → load module → loader → program in memory (with dynamically loaded system library, dynamic linking). Binding can happen at compile time, load time or execution time.
+
+### 8.1.4 Logical, relative and physical addresses
+- **Logical address** — a reference to a memory location **independent of the current assignment of data to memory**.
+- **Relative address** — an address given as a location **relative to some known point**.
+- **Physical (absolute) address** — the **actual location in main memory**.
+
+### 8.1.5 Memory-Management Unit (MMU) and dynamic relocation
+- The **MMU** is a hardware device that, **at run time, maps virtual (logical) addresses to physical addresses**.
+- Simple scheme: the value in the **relocation register** is **added to every address** generated by a user process when it is sent to memory.
+  - The **base register is now called the relocation register.**
+  - MS-DOS on Intel 80x86 used **4 relocation registers**.
+- The user program deals with **logical addresses**; it **never sees the real physical addresses**.
+- **Execution-time binding** happens when a reference is made to a memory location: the logical address is bound to a physical address.
+
+*Example:* if the relocation register holds 14000 and the program generates logical address 346, the memory unit gets 14000 + 346 = **14346**.
+
+### 8.1.6 Dynamic loading
+- **Dynamic loading loads each routine only when it is called.**
+- **Unused routines are never loaded.**
+- This **reduces total memory usage** and gives **faster program start-up**.
+- Downside: extra **complexity and overhead** — each call must check whether the routine is already loaded, and load it if not.
+
+### 8.1.7 Dynamic linking
+- **Static linking** — system libraries and program code are combined by the loader into the binary program image.
+- **Dynamic linking** — linking is **postponed until execution time**.
+- A small piece of code, the **stub**, is used to **locate the right memory-resident library routine**.
+- The stub **replaces itself with the address of the routine** and runs the routine.
+- The OS checks whether the routine is in the process's memory; if not, it is **added to the address space**.
+- Dynamic linking is especially useful for **libraries**; the system is also known as **shared libraries**.
+- It is useful for **patching system libraries**; **versioning may be needed**.
 
 ---
 
-## 32. Rapid revision tables
+## 8.2 Swapping
 
-### 32.1 One-line definitions
-
-| Term | One-line answer |
-|---|---|
-| Thread | A separate stream of execution within a process; basic unit of CPU utilization |
-| TCB | Thread Control Block: stores a thread's registers and stack information |
-| Heavyweight process | A process with a single thread of control |
-| Lightweight process | A multithreaded process / a kernel-level thread (lecture's term) |
-| ULT | Thread managed by a user-level library; kernel unaware |
-| KLT | Thread created and managed by the kernel |
-| Jacketing | Converting a blocking system call into a non-blocking one |
-| Many-to-One | Many user threads mapped to one kernel thread |
-| One-to-One | Each user thread mapped to its own kernel thread |
-| Many-to-Many | Many user threads mapped to many kernel threads |
-| Pthreads | POSIX standard (IEEE 1003.1c) API; a specification, not an implementation |
-| Thread pool | A maintained set of threads to which work is assigned as needed |
-| `pthread_self()` | Returns the ID of the calling thread |
-| Signal | Notification to a process that a particular event has occurred |
-| Target thread | The thread that is to be cancelled |
-| Asynchronous cancellation | Target thread is terminated immediately |
-| Deferred cancellation | Target thread checks periodically and stops at a cancellation point |
-| Thread-specific data | Per-thread copy of data; makes existing functions thread-safe |
-| Thread-safe function | Can be called by many threads at once without disruption |
-| ETHREAD / KTHREAD / TEB | Windows thread structures: executive block, kernel block, environment block |
-| `clone()` | Linux system call that creates a task; flags control what is shared |
-| Race condition | Outcome depends on the order in which concurrent accesses happen |
-| Critical section | Code segment that accesses shared data |
-| Mutual exclusion | Only one process in its critical section at a time |
-| Progress | The choice of who enters next cannot be postponed indefinitely |
-| Bounded waiting | A limit on how many times others enter before a waiting process |
-| Peterson's solution | Two-process software solution using `turn` and `flag[2]` |
-| Atomic | Non-interruptible |
-| TestAndSet | Atomically returns the old value and sets the target to TRUE |
-| compare_and_swap | Atomically sets value to new_value only if it equals expected; returns old value |
-| Semaphore | Integer variable accessed only through atomic `wait()` and `signal()` |
-| Binary semaphore | Semaphore with values 0 and 1; same as a mutex lock |
-| Counting semaphore | Semaphore whose value ranges over an unrestricted domain |
-| Busy waiting | Looping continuously in the entry code while waiting |
-| `block()` / `wakeup()` | Put a process on the semaphore's waiting queue / move it to the ready queue |
-| Starvation | Indefinite blocking |
-| Priority inversion | A low-priority process holds a lock needed by a high-priority process |
-| Priority inheritance | The lock holder temporarily inherits the higher priority |
-| Monitor | High-level abstract data type; only one process active inside at a time |
-| Condition variable | Monitor variable with `wait()` and `signal()` operations |
-| Conditional wait | `x.wait(c)`: the lowest priority number `c` is resumed first |
-| Deadlock | Each process in a set waits for an event only another process in the set can cause |
-| Preemptable resource | Can be taken away with no ill effects |
-| Request edge | `Pi → Rj` |
-| Assignment edge | `Rj → Pi` |
-| Claim edge | Dashed `Pi ⇢ Rj`: the process may request the resource in future |
-| Safe state | A sequence of all processes exists in which each can finish |
-| Safe sequence | The order in which all processes can finish |
-| Need | `Max − Allocation` |
-| Wait-for graph | Graph of processes with an edge `Pi → Pj` if `Pi` waits for `Pj` |
-| Victim | The process or resource chosen for preemption during recovery |
-| Rollback | Returning a process to a safe state and restarting it |
-
-### 32.2 Frequently confused pairs
-
-| Pair | Critical difference |
-|---|---|
-| Process vs thread | Own address space vs shares the process's code, data, and files |
-| ULT vs KLT | Library-managed and invisible to the kernel vs kernel-managed |
-| Many-to-One vs One-to-One | One blocking call blocks all vs each thread independent |
-| Asynchronous vs deferred cancellation | Immediate vs at a cancellation point |
-| Local variable vs thread-specific data | Visible in one function call vs visible across calls, one copy per thread |
-| `pthread_exit` vs `pthread_cancel` | Thread ends itself vs another thread requests its termination |
-| Progress vs bounded waiting | Someone gets in vs **I** get in within a bound |
-| `turn` algorithm vs Peterson | Strict alternation (no progress) vs `turn` + `flag` (all three hold) |
-| TestAndSet vs compare_and_swap | Always sets TRUE vs sets only if value equals expected |
-| Binary vs counting semaphore | 0/1 mutex vs counts multiple instances |
-| Busy-wait vs blocking semaphore | Spins, value ≥ 0 vs sleeps in a queue, value may be negative |
-| Semaphore `signal` vs condition `signal` | Always increments (remembered) vs no effect if nobody waits (lost) |
-| Signal-and-wait vs signal-and-continue | Signaller waits vs signalled process waits |
-| Deadlock vs starvation | Circular waiting, nobody proceeds vs one process waits indefinitely while others proceed |
-| First vs second readers-writers | Readers preferred (writers may starve) vs writers preferred (readers may starve) |
-| Prevention vs avoidance | Static rule that breaks a condition vs dynamic check using future claims |
-| Safe vs unsafe state | No deadlock possible vs deadlock possible (not certain) |
-| Unsafe vs deadlock | Might deadlock vs has deadlocked |
-| Need vs Request | Max − Allocation (future) vs what is asked for now |
-| Safety vs detection algorithm | Uses Need vs uses Request |
-| RAG vs wait-for graph | Processes and resources vs processes only |
-| Claim vs request edge | May request later (dashed) vs requesting now (solid) |
-| Process termination vs resource preemption | Kill processes vs take resources and roll back |
-
-### 32.3 Initial values to memorise
-
-| Problem | Variables and initial values |
-|---|---|
-| Mutual exclusion | `mutex = 1` |
-| Ordering S1 before S2 | `synch = 0` |
-| Bounded buffer | `mutex = 1`, `full = 0`, `empty = n` |
-| Readers-writers | `mutex = 1`, `wrt = 1`, `readcount = 0` |
-| Dining philosophers | `chopstick[5]`, each `= 1` |
-| Peterson | `flag[2] = {false, false}`, `turn` = either |
-| test_and_set lock | `lock = FALSE` |
-| compare_and_swap lock | `lock = 0` |
-| Monitor via semaphores | `mutex = 1`, `next = 0`, `next_count = 0`, `x_sem = 0`, `x_count = 0` |
-
-### 32.4 High-yield diagrams to practise
-
-1. Single-threaded vs multithreaded process (shared vs private parts).
-2. Four processes vs four threads for the 4-CPU summation.
-3. Pure user-level, pure kernel-level, and combined threads.
-4. Many-to-One, One-to-One, Many-to-Many mappings.
-5. ULT states vs process states (four cases).
-6. Windows ETHREAD → KTHREAD → TEB.
-7. Critical-section structure: entry, critical, exit, remainder.
-8. Race-condition interleaving table for `counter++` / `counter--`.
-9. Schematic view of a monitor, and a monitor with condition-variable queues.
-10. Dining-philosophers table.
-11. Resource-allocation graph: no deadlock, with deadlock, cycle without deadlock.
-12. Safe / unsafe / deadlock regions.
-13. RAG with claim edges (avoidance) and the unsafe case.
-14. Resource-allocation graph and its wait-for graph.
-15. Resource ordering with all arrows pointing up.
+- A process can be **swapped temporarily out of memory to a backing store**, and later **brought back** into memory to continue.
+  - The **total physical memory space of processes can exceed physical memory.**
+- **Backing store** — a **fast disk**, large enough to hold copies of all memory images for all users; it must give **direct access** to these images.
+- **Roll out, roll in** — a swapping variant used for **priority-based scheduling**: a **lower-priority process is swapped out** so a **higher-priority process** can be loaded and run.
+- **Most of the swap time is transfer time**, and the total transfer time is **directly proportional to the amount of memory swapped**.
+- The system keeps a **ready queue** of ready-to-run processes whose memory images are on disk.
+- **Does a swapped-out process need to come back to the same physical addresses?** It **depends on the address-binding method**. Also consider **pending I/O** to or from the process's memory space.
+- **Modified versions of swapping** are found on many systems (UNIX, Linux, Windows):
+  - Swapping is **normally disabled**.
+  - It starts if **more than a threshold amount of memory is allocated**.
+  - It is **disabled again** once memory demand falls below the threshold.
 
 ---
 
-## 33. Exam question bank
+## 8.3 Contiguous Memory Allocation (Memory Management Techniques)
 
-### 33.1 Very short questions (1–2 marks)
+### 8.3.1 Fixed partitioning
+- **Equal-size partitions:** any process whose size is **less than or equal to the partition size** can be loaded into an available partition.
+- The OS can **swap out** a process if all partitions are full and no process is in the Ready or Running state.
+- A program too big for a partition must be designed using **overlays**.
 
-1. Define a thread.
-2. What does a Thread Control Block contain?
-3. List what a thread owns privately and what it shares.
-4. Why is a thread called a lightweight process?
-5. What is a user-level thread?
-6. What is jacketing?
-7. Name the three arrangements in the threads-management diagram (pure user-level, pure kernel-level, combined).
-8. Name the three multithreading models.
-9. Give one example system for the many-to-one model.
-10. What is Pthreads?
-11. What do `pthread_create()` and `pthread_join()` do?
-12. What does `pthread_self()` return?
-13. Which compiler flag is needed to compile a Pthreads program?
-14. Give two advantages of thread pools.
-15. What is a signal?
-16. What is a target thread?
-17. Differentiate asynchronous and deferred cancellation.
-18. What is thread-specific data?
-19. When is a function thread-safe?
-20. Expand ETHREAD, KTHREAD, and TEB.
-21. Which system call creates a thread in Linux?
-22. Define a race condition.
-23. What is a critical section?
-24. State the three requirements of a critical-section solution.
-25. Which two variables does Peterson's solution use?
-26. What does "atomic" mean?
-27. Write the definition of `TestAndSet()`.
-28. Define a semaphore.
-29. What were `wait()` and `signal()` originally called?
-30. Differentiate binary and counting semaphores.
-31. What is busy waiting?
-32. What do `block()` and `wakeup()` do?
-33. What does a negative semaphore value indicate?
-34. Define starvation.
-35. What is priority inversion and how is it solved?
-36. Give the initial values of `mutex`, `full`, and `empty` in the bounded-buffer problem.
-37. What is `readcount` used for?
-38. Why can the semaphore solution to dining philosophers deadlock?
-39. Define a monitor.
-40. What operations are allowed on a condition variable?
-41. What happens if `x.signal()` is called and nobody is waiting?
-42. What is `x.wait(c)`?
-43. Define deadlock.
-44. Differentiate preemptable and non-preemptable resources.
-45. State the four necessary conditions for deadlock.
-46. Define request edge and assignment edge.
-47. A RAG has a cycle. Is there a deadlock?
-48. What are the three methods for handling deadlocks?
-49. What is a safe state?
-50. Does an unsafe state always lead to deadlock?
-51. What is a claim edge?
-52. Write the formula for the Need matrix.
-53. What is a wait-for graph?
-54. What is the complexity of the detection algorithm?
-55. List the two ways of recovering from deadlock.
-56. What are the three issues in resource preemption?
+**Disadvantages**
+- **Main memory is used inefficiently** — any program, however small, occupies an **entire partition**.
+- The **number of partitions** fixed at system-generation time **limits the number of active processes**.
+- **Internal fragmentation** — wasted space because the block of data loaded is **smaller than the partition**.
 
-### 33.2 Short-answer questions (3–5 marks)
+**Unequal-size partitions** help reduce these problems:
+- Programs up to **16M** can be accommodated **without overlays**.
+- Partitions **smaller than 8M** allow small programs to fit with **less internal fragmentation**.
 
-1. Using the 4-CPU summation scenario, explain why threads are better than multiple processes.
-2. Compare threads and processes.
-3. State the merits of using threads and explain how threads are scheduled.
-4. Explain thread pools and their advantages.
-5. Explain the merits and demerits of user-level threads. What is jacketing?
-6. Explain the merits and demerits of kernel-level threads.
-7. Explain the relationship between ULT states and process states with the four cases.
-8. Explain the three multithreading models with diagrams and examples.
-9. Write a Pthreads program that creates four threads to sum numbers and joins them.
-10. List the conditions under which a thread terminates.
-11. What is thread-specific data? When is it useful?
-12. Explain the semantics of `fork()` and `exec()` in a multithreaded program.
-13. Explain signal handling: the three steps and the four delivery options in a multithreaded process.
-14. Explain thread cancellation, its states, and its types in Pthreads.
-15. What is thread safety? Give an unsafe function and explain how to make functions thread-safe.
-16. Describe the Windows thread data structures with a diagram.
-17. Explain Linux threads and the `clone()` flags.
-18. Show how `counter++` and `counter--` cause a race condition.
-19. Explain the critical-section problem and its general structure.
-20. Explain the three requirements for a critical-section solution.
-21. Why does the simple `turn` algorithm fail?
-22. Explain Peterson's solution and prove that it is correct.
-23. Explain how `TestAndSet()` provides mutual exclusion.
-24. Explain `compare_and_swap()` and its use as a lock.
-25. Write the bounded-waiting mutual-exclusion algorithm using `TestAndSet()`.
-26. Define a semaphore and show two uses of it.
-27. Explain the busy-waiting problem and the semaphore implementation that avoids it.
-28. Explain deadlock, starvation, and priority inversion with semaphores.
-29. Give the semaphore solution to the bounded-buffer problem.
-30. Give the semaphore solution to the readers-writers problem and state its variations.
-31. State the dining-philosophers problem, its deadlock, and three remedies.
-32. What are the problems with semaphores?
-33. Explain monitors and condition variables with a schematic diagram.
-34. Distinguish signal-and-wait from signal-and-continue.
-35. Explain how a monitor is implemented using semaphores.
-36. Write a monitor to allocate a single resource using conditional wait.
-37. Explain the system model for deadlocks.
-38. Explain the four necessary conditions for deadlock.
-39. Explain the resource-allocation graph and the basic facts about cycles.
-40. Explain how each of the four conditions can be prevented.
-41. How does resource ordering prevent circular wait?
-42. Define safe state, unsafe state, and safe sequence.
-43. Explain the resource-allocation-graph algorithm for avoidance.
-44. Write the safety algorithm.
-45. Write the resource-request algorithm.
-46. Explain the wait-for graph method of detection.
-47. Write the deadlock-detection algorithm for multiple instances.
-48. When should the detection algorithm be invoked?
-49. Explain recovery from deadlock by process termination and by resource preemption.
-50. Compare deadlock prevention, avoidance, and detection.
+*(The slide figure "Memory assignment for fixed partitioning" shows two ways: (a) **one process queue per partition**, (b) a **single queue** for all partitions.)*
 
-### 33.3 Long-answer questions (8–10 marks)
+### 8.3.2 Dynamic partitioning
+- Partitions are of **variable length and number**.
+- A process is allocated **exactly as much memory as it needs**.
+- Used by IBM's mainframe OS, **OS/MVT**.
 
-1. Explain threads in detail: the 4-CPU motivation, threads vs processes, merits, and thread scheduling.
-2. Compare user-level and kernel-level threads, and explain all multithreading models with diagrams.
-3. Explain thread libraries and the Pthreads API (`pthread_self`, `pthread_create`, `pthread_join`, `pthread_exit`) with the four-thread summation program.
-4. Explain thread termination and thread cancellation: states and types.
-5. Explain all threading issues: `fork`/`exec`, signal handling, thread pools, thread safety, and thread-specific data.
-6. Describe how Windows XP and Linux represent threads.
-7. Explain the critical-section problem, its requirements, and Peterson's solution with proof.
-8. Explain synchronization hardware: disabling interrupts, locks, test_and_set, compare_and_swap, and the bounded-waiting algorithm.
-9. Explain semaphores: definition, types, usage, both implementations, and their problems.
-10. Explain the three classical synchronization problems with semaphore solutions.
-11. Explain monitors: syntax, condition variables, the dining-philosophers solution, and implementation using semaphores.
-12. Explain deadlock characterization with the four conditions and resource-allocation graphs.
-13. Explain deadlock prevention in detail.
-14. Explain deadlock avoidance: safe state, the RAG algorithm, and the Banker's algorithm with an example.
-15. Explain deadlock detection for single and multiple instances, with an example, and recovery from deadlock.
-16. Compare the three approaches to deadlock with their advantages and disadvantages.
+**Disadvantage — external fragmentation:** memory becomes more and more fragmented and **memory utilization declines**.
+- **Compaction** — the technique to overcome external fragmentation: the OS **shifts processes so they are contiguous** and all free memory is together in **one block**.
+- Compaction is **time consuming and wastes CPU time**.
 
-### 33.4 Code and trace questions
+### 8.3.3 Placement algorithms
+- **Best-fit** — chooses the block **closest in size** to the request.
+- **First-fit** — scans memory **from the beginning** and chooses the **first available block that is large enough**.
+- **Next-fit** — scans from the **location of the last placement** and chooses the next available block that is large enough.
+- **Worst-fit** — allocates the **largest block**; must also search the entire list; **produces the largest leftover hole**.
 
-1. `counter = 5`. Give an interleaving of `counter++` and `counter--` that leaves `counter = 6`.
-2. In Peterson's solution, both processes set their flags and then `P0` sets `turn = 1` followed by `P1` setting `turn = 0`. Who enters first? *(Ans: P0, because turn = 0 means P1 waits.)*
-3. What goes wrong in Peterson's solution if `turn = j` is executed before `flag[i] = true`?
-4. A semaphore `S = 3`. The operations `P, P, P, P, V, P, P` are performed with the blocking implementation. What is the final value and how many processes are blocked? *(Ans: −2; two blocked.)*
-5. A counting semaphore is initialized to 10. 6 `P` operations and 4 `V` operations are completed. What is its value? *(Ans: 8.)*
-6. In the bounded buffer, swap `wait(empty)` and `wait(mutex)` in the producer. Show the deadlock.
-7. In the reader code, why is `wait(wrt)` executed only when `readcount == 1`?
-8. Trace the monitor solution when philosophers 0 and 2 are eating and philosopher 1 calls `pickup(1)`. What happens when philosopher 0 calls `putdown(0)`?
-9. `P0: wait(S); wait(Q);` and `P1: wait(Q); wait(S);` with `S = Q = 1`. Give an interleaving that deadlocks and one that does not.
-10. Identify the bug in the `Incr()` function and fix it with a mutex.
-11. What does this print, and why might the order vary? Four threads each call `printf` with their ID and are then joined.
-12. What is wrong with `signal(mutex); critical section; wait(mutex);`?
+**Question (slide):** Five memory partitions of **100 KB, 500 KB, 200 KB, 300 KB, 600 KB** (in order). How do first-fit, best-fit and worst-fit place processes of **212 KB, 417 KB, 112 KB, 426 KB** (in order)? Which makes the most efficient use of memory?
 
-### 33.5 Multiple-choice questions
+| Algorithm | 212 KB | 417 KB | 112 KB | 426 KB |
+| --- | --- | --- | --- | --- |
+| **First-fit** | 500K partition | 600K partition | 288K partition (leftover of 500K − 212K) | **Must wait** |
+| **Best-fit** | 300K partition | 500K partition | 200K partition | 600K partition |
+| **Worst-fit** | 600K partition | 500K partition | 388K partition | **Must wait** |
 
-1. Which of the following is **not** shared by the threads of a process?<br>
-   A. Code  B. Global data  C. Stack  D. Open files
-2. In the many-to-one model, a blocking system call by one thread:<br>
-   A. Blocks only that thread  B. Blocks the entire process  C. Kills the process  D. Has no effect
-3. Which model does Linux use?<br>
-   A. Many-to-One  B. One-to-One  C. Many-to-Many  D. None of these
-4. Which threads are created and managed by the kernel and also called lightweight processes?<br>
-   A. User-level threads  B. Library threads  C. Kernel-level threads  D. Green threads
-5. Jacketing is used to:<br>
-   A. Speed up KLTs  B. Convert a blocking call into a non-blocking call  C. Cancel a thread  D. Create a thread pool
-6. The default cancellation type in Pthreads is:<br>
-   A. Asynchronous  B. Deferred  C. Disabled  D. Immediate
-7. Which Windows structure lives in user space?<br>
-   A. ETHREAD  B. KTHREAD  C. TEB  D. PCB
-8. Linux creates threads using:<br>
-   A. `fork()`  B. `exec()`  C. `clone()`  D. `thread()`
-9. Which is **not** a requirement of a critical-section solution?<br>
-   A. Mutual exclusion  B. Progress  C. Bounded waiting  D. No preemption
-10. Peterson's solution works for:<br>
-    A. Two processes  B. Three processes  C. n processes  D. Only threads
-11. `TestAndSet(&lock)` returns:<br>
-    A. Always TRUE  B. Always FALSE  C. The old value of lock  D. The new value of lock
-12. A binary semaphore is also known as a:<br>
-    A. Monitor  B. Mutex lock  C. Condition variable  D. Counting semaphore
-13. In the bounded-buffer problem, `empty` is initialized to:<br>
-    A. 0  B. 1  C. n  D. −1
-14. In the readers-writers solution, `wrt` is acquired by:<br>
-    A. Every reader  B. Only the first reader and every writer  C. Only writers  D. Nobody
-15. The monitor solution to dining philosophers is free from:<br>
-    A. Starvation  B. Deadlock  C. Both  D. Neither
-16. `x.signal()` on a condition variable with no waiting process:<br>
-    A. Blocks the caller  B. Increments a counter  C. Has no effect  D. Causes an error
-17. Priority inversion is solved by:<br>
-    A. Aging  B. Priority inheritance  C. Round robin  D. Rollback
-18. Which is **not** a necessary condition for deadlock?<br>
-    A. Mutual exclusion  B. Hold and wait  C. Preemption  D. Circular wait
-19. A cycle in a RAG with a single instance of each resource type means:<br>
-    A. No deadlock  B. Possible deadlock  C. Deadlock  D. Starvation
-20. Imposing a total ordering on resource types prevents:<br>
-    A. Mutual exclusion  B. Hold and wait  C. No preemption  D. Circular wait
-21. The Banker's algorithm is used for deadlock:<br>
-    A. Prevention  B. Avoidance  C. Detection  D. Recovery
-22. `Need` equals:<br>
-    A. Max + Allocation  B. Max − Allocation  C. Allocation − Max  D. Available − Max
-23. An unsafe state:<br>
-    A. Is always a deadlock  B. May lead to deadlock  C. Never leads to deadlock  D. Is a safe state
-24. A wait-for graph is used when:<br>
-    A. Each resource type has one instance  B. Resources have many instances  C. There are no resources  D. Avoidance is used
-25. Most operating systems, including UNIX, handle deadlock by:<br>
-    A. Prevention  B. Avoidance  C. Detection  D. Ignoring the problem
+**Answer:** **Best-fit** is the most efficient here — it is the only one that places all four processes.
 
-**MCQ answer key:** 1-C, 2-B, 3-B, 4-C, 5-B, 6-B, 7-C, 8-C, 9-D, 10-A, 11-C, 12-B, 13-C, 14-B, 15-B, 16-C, 17-B, 18-C, 19-C, 20-D, 21-B, 22-B, 23-B, 24-A, 25-D.
+### 8.3.4 Buddy system
+- It combines **fixed and dynamic partitioning** schemes.
+- The space available for allocation is treated as **a single block**.
+- Memory blocks are available in sizes of **2^K words**, where **L ≤ K ≤ U**:
+  - **2^L** = smallest block size that is allocated,
+  - **2^U** = largest block size that is allocated (generally the size of the whole memory available for allocation).
 
-### 33.6 Numericals (must-practise)
+**Example of buddy system (slide figure) — a 1 MB block:**
 
-1. **Banker's — safety.** Solve Example 1(a) in section 28.1 and write the safe sequence. *(Ans: `<P1, P3, P4, P2, P0>`.)*
-2. **Banker's — request.** For the same data, decide the requests P1 (1,0,2), then P4 (3,3,0), then P0 (0,2,0). *(Ans: granted; must wait since resources are unavailable; denied since unsafe.)*
-3. **Safe state.** Solve Example 2 in section 28.2. *(Ans: `<P2, P1, P3, P4>`.)*
-4. **Unsafe state.** Solve Example 3 in section 28.3. *(Ans: unsafe; request denied.)*
-5. **Slide practice problem.** Solve Example 4 in section 28.4. *(Ans: (a) safe, `<P1, P2, P0>`; (b) request denied, the state would be unsafe.)*
-6. **Detection.** Solve the example in section 29.3 before and after P2's extra request. *(Ans: no deadlock; then P1, P2, P3, P4 deadlocked.)*
-7. **Detection practice question.** Solve section 29.4. *(Ans: P1 and P2 are deadlocked.)*
-8. **Minimum resources.** Three processes each need at most 2 instances of a resource. What is the minimum number of instances that guarantees no deadlock? *(Ans: 3 × (2 − 1) + 1 = 4.)*
-9. **RAG reading.** Draw the RAG of section 24.3, list the cycles, and state which processes are deadlocked.
+| Event | Memory after the event |
+| --- | --- |
+| Start | 1M (one free block) |
+| Request 100K (A) | A = 128K, 128K free, 256K free, 512K free |
+| Request 240K (B) | A = 128K, 128K free, B = 256K, 512K free |
+| Request 64K (C) | A = 128K, C = 64K, 64K free, B = 256K, 512K free |
+| Request 256K (D) | A = 128K, C = 64K, 64K free, B = 256K, D = 256K, 256K free |
+| Release B | B's 256K becomes free |
+| Release A | A's 128K becomes free |
+| Request 75K (E) | E = 128K (uses the free 128K block), C = 64K, 64K free, 256K free, D = 256K, 256K free |
+| Release C | C and its free 64K buddy join into a 128K free block |
+| Release E | Free blocks join → a 512K free block, D = 256K, 256K free |
+| Release D | Everything joins back into one **1M** block |
+
+*(The slide also shows the **tree representation** of the buddy system: the 1M block splits into 512K blocks, then 256K, 128K and 64K. A leaf is either an allocated block or an unallocated block; the other nodes are split (non-leaf) nodes.)*
 
 ---
 
-## 34. Model answers and marking points
+## 8.4 Paging
 
-### 34.1 Model: ULT vs KLT (5 marks)
+### 8.4.1 Concept
+- The **physical address space of a process can be non-contiguous**; the process gets physical memory **whenever it is available**.
+  - This **avoids external fragmentation**.
+  - It **avoids the problem of varying-sized memory chunks**.
+- **Physical memory** is divided into **equal fixed-size blocks** that are relatively small — called **frames** (the available blocks of memory).
+- The **process is also divided** into small fixed-size blocks of the **same size** — called **pages** (the blocks of a process).
+- The system **keeps track of all free frames**.
+- To run a program of **N pages**, find **N free frames** and load the program.
+- There is **still internal fragmentation**.
 
-Define both (1 mark): a ULT is managed by a user-level thread library and the kernel is not aware of it; a KLT is created and managed by the kernel. Give ULT merits (1): works on an OS without thread support, fast creation and switching, no system call. Give ULT demerits (1): one blocking system call blocks every thread, and the process competes as a single unit; mention **jacketing** as the fix. Give KLT merits (1): the kernel knows the threads, one blocked thread does not block the others, more quantum for many-thread processes. Give KLT demerits (1): slow, larger overhead, a mode switch on every thread switch. A comparison table earns the presentation mark.
+### 8.4.2 Internal fragmentation (calculation from the slide)
+- Page size = **2,048 bytes**; process size = **72,766 bytes**.
+- 72,766 = **35 pages + 1,086 bytes** → the process needs 36 pages.
+- Internal fragmentation = 2,048 − 1,086 = **962 bytes**.
+- **Worst case** fragmentation = **1 frame − 1 byte**.
+- **On average** fragmentation = **1/2 frame size**.
+- So are small frame sizes better? **But each page-table entry takes memory to track**, and **page sizes have been growing over time**.
 
-### 34.2 Model: Multithreading models (5 marks)
+### 8.4.3 Address translation scheme
+The address generated by the CPU is divided into two parts:
+- **Page number (p)** — used as an **index into the page table**, which holds the **base address of each page in physical memory**.
+- **Page offset (d)** — combined with the base address to give the **physical memory address** sent to the memory unit.
 
-Draw three mapping diagrams (1.5 marks). **Many-to-One:** many user threads on one kernel thread; one blocking call blocks all; no parallelism on multicore; Solaris Green Threads, GNU Portable Threads (1). **One-to-One:** one kernel thread per user thread; more concurrency; thread count may be restricted by overhead; Windows, Linux (1). **Many-to-Many:** many user threads on many kernel threads; the OS creates a sufficient number of kernel threads; Windows NT/2000 (1). Neat labels and the shared/separate parts in each diagram earn the remaining 0.5.
+For a logical address space of **2^m** and a page size of **2^n**: the **higher m − n bits** are the page number p and the **lower n bits** are the offset d.
 
-### 34.3 Model: Critical-section problem and Peterson's solution (8 marks)
+| page number (p) | page offset (d) |
+| --- | --- |
+| m − n bits | n bits |
 
-Define the critical section and draw the entry/critical/exit/remainder structure (2). State the three requirements precisely (2). Write Peterson's algorithm for `Pi` with `flag[i] = true; turn = j; while (flag[j] && turn == j);` then the critical section and `flag[i] = false` (2). Prove the properties (2): mutual exclusion because `turn` cannot be both `i` and `j`; progress because a process waits only if the other is interested and has the turn; bounded waiting because the other process enters at most once before `Pi`. State the assumption that load and store are atomic and that it may not work on modern architectures.
+### 8.4.4 Paging hardware and model
+**Paging hardware (figure):** the CPU produces a logical address (p, d). **p** indexes the **page table** to get the **frame number f**. The physical address is **(f, d)**, i.e. frame f followed by the same offset d, and it goes to physical memory.
 
-### 34.4 Model: Semaphores (8 marks)
+**Paging model of logical and physical memory (figure):** the pages 0, 1, 2, 3 of logical memory are placed in **any free frames** of physical memory, and the page table records which frame holds each page.
 
-Definition with `wait`/`signal` code and the names P and V (2). Counting vs binary, and binary = mutex (1). Two usages: mutual exclusion with `mutex = 1` and ordering with `synch = 0` (1.5). The busy-waiting problem (1). The blocking implementation with the `struct`, `block()`, and `wakeup()`, and the meaning of a negative value (1.5). Problems: deadlock with the `S`/`Q` example, starvation, priority inversion with priority inheritance (1).
+### 8.4.5 Paging example
+**n = 2 and m = 4; 32-byte memory and 4-byte pages.**
+- Logical memory has 16 bytes (a to p) = 4 pages. Page table: page 0 → frame 5, page 1 → frame 6, page 2 → frame 1, page 3 → frame 2.
+- Logical address 0 (`a`): page 0, offset 0 → frame 5 → physical address 5 × 4 + 0 = **20**.
+- Logical address 3 (`d`): page 0, offset 3 → 5 × 4 + 3 = **23**.
+- Logical address 4 (`e`): page 1, offset 0 → frame 6 → 6 × 4 + 0 = **24**.
+- Logical address 13 (`n`): page 3, offset 1 → frame 2 → 2 × 4 + 1 = **9**.
 
-### 34.5 Model: Readers-writers (5 marks)
-
-State the problem: many readers may read together, a writer needs exclusive access (1). Declare `mutex = 1`, `wrt = 1`, `readcount = 0` and say what each does (1). Write the writer code (0.5) and the reader code (1.5). Explain that the first reader locks `wrt` and the last reader releases it (0.5). Mention the two variations and that both can starve (0.5).
-
-### 34.6 Model: Monitor solution to dining philosophers (8 marks)
-
-Define a monitor and condition variables (1.5). State the restriction that a philosopher picks up chopsticks only if both are available (0.5). Declare `state[5]` and `self[5]` (1). Write `pickup`, `putdown`, `test`, and the initialization (3). Explain the trace: `pickup` sets HUNGRY and tests; if a neighbour is eating it waits on `self[i]`; `putdown` sets THINKING and tests both neighbours, which may signal them (1.5). Conclude: **no deadlock, but starvation is possible** (0.5).
-
-### 34.7 Model: Four conditions and prevention (8 marks)
-
-Define deadlock (1). State the four conditions (2): mutual exclusion, hold and wait, no preemption, circular wait, and say that all four must hold simultaneously. Prevention for each (4): mutual exclusion cannot be denied for non-sharable resources; hold and wait is denied by requesting all resources at once or only when holding none (low utilization, starvation); no preemption is denied by releasing all held resources when a request cannot be met; circular wait is denied by a total ordering with requests in increasing order. Add the "all arrows point up" argument (1).
-
-### 34.8 Model: Solving a Banker's problem (8–10 marks)
-
-1. **Compute Need** = Max − Allocation and show the matrix (2).
-2. **Verify Available** if the totals are given: total − sum of allocations (1).
-3. **Safety algorithm:** show `Work` after each step in a table; pick any process with `Need ≤ Work` (3).
-4. **State the result:** "The system is in a safe state; safe sequence `<…>`" (1).
-5. **For a request:** check `Request ≤ Need`, then `Request ≤ Available`, pretend to allocate, show the new table, and re-run the safety algorithm (2–3).
-6. **Conclude** with "granted", "must wait (resources unavailable)", or "denied (unsafe); old state restored".
-
-**Common mistakes:** forgetting to add **Allocation** (not Need) back to `Work`; comparing Request with Max instead of Need; calling an unsafe state a deadlock; stopping at the first process that fails instead of trying the others.
-
-### 34.9 Model: Deadlock detection and recovery (8 marks)
-
-Single instance: wait-for graph, edge `Pi → Pj`, cycle means deadlock, `O(n²)` (2). Multiple instances: Available, Allocation, Request; the four-step algorithm with `Finish[i] = true` initially for processes holding nothing; `O(m × n²)` (3). Usage: how often deadlock occurs and how many processes are affected (1). Recovery: abort all or one at a time with the six selection criteria; or resource preemption with victim selection, rollback, and starvation (2).
-
-### 34.10 Answer-writing strategy
-
-For a 5-mark answer: give a precise definition, one labelled diagram or code fragment, three or four explained points, and a concluding distinction. For a 10-mark answer: add the algorithm or proof, advantages and limitations, a comparison table, and one nuance (for example "unsafe is not deadlock" or "a cycle is not always a deadlock"). In numericals, always show the `Work` vector after every step and write the final sequence in angle brackets.
+### 8.4.6 Free frames
+The slide shows the **free-frame list before allocation and after allocation**: when a new process arrives, the OS takes as many frames from the free-frame list as the process has pages, loads the pages into them, and writes the frame numbers into the process's page table. Those frames are then no longer free.
 
 ---
 
-## Final checklist
+## 8.5 Structure of Page Table
 
-- [ ] I can explain the 4-CPU scenario and why threads beat multiple processes.
-- [ ] I can list what a thread owns and what it shares, and compare threads with processes.
-- [ ] I can state the merits of threads and the thread-scheduling rules.
-- [ ] I can compare ULT and KLT with merits, demerits, jacketing, and the ULT-state cases.
-- [ ] I can draw and explain Many-to-One, One-to-One, and Many-to-Many models.
-- [ ] I can write a Pthreads program with `pthread_create` and `pthread_join`, and list the ways a thread terminates.
-- [ ] I can explain cancellation states and types (asynchronous vs deferred).
-- [ ] I can explain `fork`/`exec` semantics, signal delivery, thread pools, thread safety, and thread-specific data.
-- [ ] I can describe Windows XP ETHREAD/KTHREAD/TEB and the Linux `clone()` flags.
-- [ ] I can show the race condition on `counter` step by step.
-- [ ] I can state the three critical-section requirements and explain why the `turn` algorithm fails.
-- [ ] I can write and prove Peterson's solution.
-- [ ] I can write `test_and_set`, `compare_and_swap`, and the bounded-waiting algorithm.
-- [ ] I can define semaphores and write both implementations.
-- [ ] I can write the semaphore solutions to bounded buffer, readers-writers, and dining philosophers.
-- [ ] I can explain monitors, condition variables, and the monitor solution to dining philosophers.
-- [ ] I can implement a monitor using semaphores and explain conditional wait.
-- [ ] I can define deadlock, state the four conditions, and read a resource-allocation graph.
-- [ ] I can explain how each condition is prevented.
-- [ ] I can define a safe state and apply the RAG algorithm with claim edges.
-- [ ] I can solve Banker's algorithm safety and request problems.
-- [ ] I can run the detection algorithm and draw a wait-for graph.
-- [ ] I can explain recovery by termination and by preemption.
-- [ ] I can compare prevention, avoidance, and detection.
+### 8.5.1 Page table
+- **Maintained by the OS for each process.**
+- It **contains the frame location for each page** of the process (it **translates logical to physical addresses**).
+- The **processor must know how to access the page table** of the current process.
+- The processor uses it to **produce a physical address**.
 
-> **Revision rule:** first reproduce the diagrams and code from memory, then answer the short questions, and finally solve one Banker's problem and one detection problem under timed conditions.
+**Question (GATE 2015, slide):** byte-addressable memory, **32-bit logical addresses**, **4 KB page size**, **page table entries of 4 bytes**. Size of the page table in MB?
+- Number of pages = 2^32 / 2^12 = **2^20** entries.
+- Page table size = 2^20 × 4 bytes = 2^22 bytes = **4 MB**.
+
+### 8.5.2 Implementation of page table
+- The page table is **kept in main memory**.
+- **Page-table base register (PTBR)** — **points to the page table**.
+- **Page-table length register (PTLR)** — indicates the **size of the page table**.
+- In this scheme **every data/instruction access needs two memory accesses**: one for the page table and one for the data/instruction.
+- This **two-memory-access problem** is solved by a special **fast-lookup hardware cache** called **associative memory** or **translation look-aside buffer (TLB)**.
+
+**Associative memory** — **parallel search**. For address translation (p, d):
+- If **p is in an associative register**, get the frame number directly — **TLB hit**.
+- Otherwise get the frame number **from the page table in memory** — **TLB miss**.
+
+*(Figure "Paging hardware with TLB": the page number is first looked up in the TLB; on a hit the frame number comes straight from it; on a miss it is read from the page table in memory.)*
+
+### 8.5.3 Effective memory access time (EMAT)
+- Associative lookup = **ε** time units (can be **< 10%** of the memory access time).
+- **Hit ratio = α** — the percentage of times a page number is found in the associative registers; it is related to the number of associative registers.
+- **EMAT = TLB hit × (TLB access time + memory access time) + TLB miss × (TLB access time + page table access time + memory access time)**
+
+**Question (GATE 2014, slide):** TLB search takes **10 ms**, physical memory access takes **80 ms**, TLB hit ratio is **0.6**. Find the EMAT.
+- Hit: 10 + 80 = 90 ms. Miss: 10 + 80 (page table) + 80 (data) = 170 ms.
+- EMAT = 0.6 × 90 + 0.4 × 170 = 54 + 68 = **122 ms** → option **(B)**.
+
+### 8.5.4 Valid (v) / invalid (i) bit in a page table
+- Each page-table entry has a **valid–invalid bit** next to the frame number.
+- **v** → the page is in the process's logical address space (a legal page).
+- **i** → the page is **not** in the process's logical address space.
+- *(Slide figure: pages 0–5 have frames 2, 3, 4, 7, 8, 9 and are marked **v**; the entries for pages 6 and 7 are marked **i**.)*
+
+### 8.5.5 Shared pages
+- **Shared code**
+  - **One copy of read-only (reentrant) code** is shared among processes (e.g. text editors, compilers, window systems).
+  - Similar to **multiple threads sharing the same process space**.
+  - Also useful for **inter-process communication** if sharing of **read-write pages** is allowed.
+- **Private code and data**
+  - Each process keeps a **separate copy** of its code and data.
+  - The pages for private code and data can appear **anywhere in the logical address space**.
+- *(Slide figure "Shared pages example": the page tables of different processes point to the **same frames** for the shared code, and to different frames for each process's private data.)*
+
+---
+
+## 8.6 Types of Paging
+
+### 8.6.1 Hierarchical page tables
+- **Break up the logical address space into multiple page tables.**
+- A simple technique is a **two-level page table** — **"page the page table"**.
+- *(Figure: **two-level page-table scheme** — an **outer page table** points to pages of the page table, and those point to the actual frames in memory.)*
+
+**Question (GATE 2013, slide):** 46-bit virtual address, 32-bit physical address, **three-level** page table. The page-table base register holds the base address of the first-level table **T1**, which occupies **exactly one page**. Each entry of T1 points to a page of **T2**, each entry of T2 points to a page of **T3**, and each entry of T3 is a PTE of **32 bits**. What is the **page size in KB**?
+
+**Solution (as in the slide):** let the page size be **x**.
+- Number of pages = 2^46 / x → T3 has that many entries; each entry is 4 bytes, so total T3 size = 2^48 / x bytes.
+- Number of T3 pages = 2^48 / x² → T2 needs that many entries; total T2 size = 2^50 / x² bytes.
+- Number of T2 pages = 2^50 / x³ → T1 needs that many entries; T1 size = 2^52 / x³ bytes.
+- T1 occupies exactly one page, so 2^52 / x³ = x → x⁴ = 2^52 → x = 2^13 bytes = **8 KB**.
+
+### 8.6.2 Hashed page tables
+- Common in address spaces **larger than 32 bits**.
+- The **virtual page number is hashed** into a page table. Each hash-table location holds a **chain of elements** that hash to the same place.
+- Each element contains: **(1) the virtual page number, (2) the value of the mapped page frame, (3) a pointer to the next element**.
+- Virtual page numbers are **compared along the chain** to find a match; if found, the **corresponding physical frame is taken**.
+- **Variation for 64-bit addresses — clustered page tables:** similar to hashed, but **each entry refers to several pages (such as 16) instead of 1**. Especially useful for **sparse address spaces** (memory references that are non-contiguous and scattered).
+
+### 8.6.3 Inverted page table
+- Instead of each process having a page table that tracks all its possible logical pages, **track all physical pages**.
+- There is **one entry for each real page (frame) of memory**.
+- Each entry holds the **virtual address of the page stored in that real memory location**, with information about the **process that owns the page**.
+- It **reduces the memory needed to store page tables**, but **increases the time needed to search the table** on a page reference.
+- A **hash table** is used to limit the search to **one or at most a few** page-table entries; the **TLB can speed up access**.
+- **How to implement shared memory?** With an inverted table there is **only one mapping** of a virtual address to the shared physical address.
+- *(Figure "Inverted page table architecture": the CPU's logical address has (pid, p, d); the table is searched for (pid, p); the index i of the matching entry is the frame number, giving the physical address (i, d).)*
+
+---
+
+*End of notes.*
